@@ -9,7 +9,9 @@ describe('RouteController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RouteController],
       providers: [RouteService],
-    }).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
     controller = module.get<RouteController>(RouteController);
   });

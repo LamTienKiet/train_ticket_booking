@@ -1,8 +1,11 @@
+import { Role } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { FareService } from './fare.service';
 import { CreateFareDto } from './dto/create-fare.dto';
 import { UpdateFareDto } from './dto/update-fare.dto';
 
+@Roles(Role.ADMIN) // shortcut: module còn là code mẫu, khóa toàn bộ cho ADMIN tới khi viết xong
 @Controller('fare')
 export class FareController {
   constructor(private readonly fareService: FareService) {}

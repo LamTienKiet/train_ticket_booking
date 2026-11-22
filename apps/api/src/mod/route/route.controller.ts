@@ -1,8 +1,11 @@
+import { Role } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { RouteService } from './route.service';
 import { CreateRouteDto } from './dto/create-route.dto';
 import { UpdateRouteDto } from './dto/update-route.dto';
 
+@Roles(Role.ADMIN) // shortcut: module còn là code mẫu, khóa toàn bộ cho ADMIN tới khi viết xong
 @Controller('route')
 export class RouteController {
   constructor(private readonly routeService: RouteService) {}
