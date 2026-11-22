@@ -1,15 +1,79 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 import { MOCK_TRIP_DETAIL } from "./mock-trip-data";
 import Navbar from "../components/Navbar";
+import { api } from "../utils/axiosClient";
+
+const fmtTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+
+type Station = { id: string; name: string };
+type SearchStation = Station & { scheduledTime: string };
+type SearchTrip = {
+  id: string;
+  departureTime: string;
+  arrivalTime: string;
+  train: { id: string; code: string; name: string };
+  route: { id: string; code: string; name: string; distanceKm: string | null };
+  originStation: SearchStation | null;
+  destinationStation: SearchStation | null;
+  faresByType: { basePrice: number }[];
+  totalAvailableSeats: number;
+};
+
+// Đổi kết quả GET /trips/search về cùng dạng với GET /trips để dùng chung giao diện
+const toTripRow = (t: SearchTrip) => {
+  const dep = t.originStation?.scheduledTime ?? t.departureTime;
+  const arr = t.destinationStation?.scheduledTime ?? t.arrivalTime;
+  const mins = Math.round((new Date(arr).getTime() - new Date(dep).getTime()) / 60000);
+  const prices = t.faresByType.map((f) => f.basePrice);
+  return {
+    id: t.id,
+    train: t.train,
+    route: { ...t.route, originStation: t.originStation, destinationStation: t.destinationStation },
+    departureTime: fmtTime(dep),
+    arrivalTime: fmtTime(arr),
+    duration: `${Math.floor(mins / 60)}h ${mins % 60}m`,
+    minPrice: prices.length ? Math.min(...prices) : 0,
+    availableSeats: t.totalAvailableSeats,
+    stops: [],
+  };
+};
 
 export default function TripPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
+          Đang tải...
+        </div>
+      }
+    >
+      <TripContent />
+    </Suspense>
+  );
+}
+
+function TripContent() {
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
+  const date = searchParams.get("date");
+  const isSearch = Boolean(from && to && date);
+
   // State quản lý danh sách chuyến tàu từ API
   const [trips, setTrips] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchInfo, setSearchInfo] = useState<{ from: string; to: string } | null>(null);
+  const [searchError, setSearchError] = useState("");
 
   // State quản lý xem lộ trình dừng của tàu nào (mở / đóng)
   const [openStopsTrainId, setOpenStopsTrainId] = useState<string | null>(null);
@@ -19,6 +83,29 @@ export default function TripPage() {
   };
 
   useEffect(() => {
+    if (isSearch) {
+      Promise.all([
+        api.get<SearchTrip[]>("/trips/search", {
+          params: { originStationId: from, destinationStationId: to, departureDate: date },
+        }),
+        api.get<Station[]>("/stations"),
+      ])
+        .then(([tripRes, stationRes]) => {
+          setSearchError("");
+          setTrips(tripRes.data.map(toTripRow));
+          const name = (id: string | null) =>
+            stationRes.data.find((s) => s.id === id)?.name ?? "";
+          setSearchInfo({ from: name(from), to: name(to) });
+        })
+        .catch((e) => {
+          setTrips([]);
+          const msg = e?.response?.data?.message;
+          setSearchError(Array.isArray(msg) ? msg.join(", ") : msg || "Không tìm được chuyến tàu.");
+        })
+        .finally(() => setIsLoading(false));
+      return;
+    }
+
     const fetchTrips = async () => {
       try {
         const res = await fetch("http://localhost:3001/trips");
@@ -35,19 +122,20 @@ export default function TripPage() {
       }
     };
     fetchTrips();
-  }, []);
+  }, [isSearch, from, to, date]);
 
   // Lấy thông tin tuyến đường tóm tắt
   const firstTrip = trips.length > 0 ? trips[0] : null;
   const originStationName =
-    firstTrip?.route?.originStation?.name || MOCK_TRIP_DETAIL.originStation;
+    searchInfo?.from || firstTrip?.route?.originStation?.name || MOCK_TRIP_DETAIL.originStation;
   const destinationStationName =
+    searchInfo?.to ||
     firstTrip?.route?.destinationStation?.name ||
     MOCK_TRIP_DETAIL.destinationStation;
-  const departureDate =
-    firstTrip?.departureDate || MOCK_TRIP_DETAIL.departureDate;
-  const distanceKm =
-    firstTrip?.route?.distanceKm || MOCK_TRIP_DETAIL.distanceKm;
+  const departureDate = isSearch
+    ? new Date(`${date}T00:00:00`).toLocaleDateString("vi-VN")
+    : firstTrip?.departureDate || MOCK_TRIP_DETAIL.departureDate;
+  const distanceKm = Number(firstTrip?.route?.distanceKm || MOCK_TRIP_DETAIL.distanceKm);
   const tripCode = firstTrip?.route?.code || MOCK_TRIP_DETAIL.tripCode;
 
   return (
@@ -69,16 +157,18 @@ export default function TripPage() {
               Ngày đi: {departureDate}
             </span>
           </div>
-          <div className={styles.routeMeta}>
-            Khoảng cách: {distanceKm.toLocaleString("vi-VN")} km |
-            Mã tuyến: {tripCode}
-          </div>
+          {(!isSearch || firstTrip) && (
+            <div className={styles.routeMeta}>
+              Khoảng cách: {distanceKm.toLocaleString("vi-VN")} km |
+              Mã tuyến: {tripCode}
+            </div>
+          )}
         </section>
 
         {/* TIÊU ĐỀ DANH SÁCH TÀU */}
         <div className={styles.trainListHeader}>
           <h1 className={styles.trainListTitle}>
-            Các đoàn tàu đảm nhận chuyến này ({trips.length > 0 ? trips.length : MOCK_TRIP_DETAIL.trains.length} đoàn tàu)
+            Các đoàn tàu đảm nhận chuyến này ({trips.length > 0 || isSearch ? trips.length : MOCK_TRIP_DETAIL.trains.length} đoàn tàu)
           </h1>
           <span className={styles.trainCount}>
             Chọn đoàn tàu phù hợp để chuyển sang bước chọn chỗ ngồi
@@ -171,13 +261,15 @@ export default function TripPage() {
                         </Link>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => toggleStops(trip.id)}
-                        className={styles.toggleStopsBtn}
-                      >
-                        {isStopsOpen ? "Ẩn ga dừng ▲" : "Xem ga dừng ▼"}
-                      </button>
+                      {trip.stops?.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => toggleStops(trip.id)}
+                          className={styles.toggleStopsBtn}
+                        >
+                          {isStopsOpen ? "Ẩn ga dừng ▲" : "Xem ga dừng ▼"}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -215,6 +307,11 @@ export default function TripPage() {
                 </div>
               );
             })
+          ) : isSearch ? (
+            <div role="status" style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
+              {searchError || "Không có chuyến tàu nào cho tuyến và ngày đã chọn."}{" "}
+              <Link href="/">Đổi tìm kiếm</Link>
+            </div>
           ) : (
             MOCK_TRIP_DETAIL.trains.map((train) => {
               const isSoldOut = train.availableSeats === 0;

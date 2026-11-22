@@ -1,10 +1,37 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import Navbar from "./components/Navbar";
+import { api } from "./utils/axiosClient";
+
+type Station = { id: string; name: string; city: string };
 
 export default function HomePage() {
+  const router = useRouter();
+  const [stations, setStations] = useState<Station[]>([]);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [date, setDate] = useState("");
+  const [error, setError] = useState("");
+  const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD theo giờ máy
+
+  useEffect(() => {
+    api
+      .get<Station[]>("/stations")
+      .then((res) => setStations(res.data))
+      .catch(() => setError("Không tải được danh sách ga. Vui lòng thử lại."));
+  }, []);
+
+  const handleSearch = () => {
+    if (!from || !to || !date) return setError("Vui lòng chọn ga đi, ga đến và ngày đi.");
+    if (from === to) return setError("Ga đi và ga đến không được trùng nhau.");
+    setError("");
+    router.push(`/trips?${new URLSearchParams({ from, to, date })}`);
+  };
+
   const popularRoutes = [
     {
       id: 1,
@@ -57,45 +84,61 @@ export default function HomePage() {
           <div className={styles.bookingWidget}>
             <div className={styles.bookingStep}>
               <span className={styles.stepNum}>1</span>
-              <select className={styles.stepSelect}>
+              <select
+                className={styles.stepSelect}
+                aria-label="Ga đi"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              >
                 <option value="">Chọn Ga Đi</option>
-                <option value="HN">Hà Nội</option>
-                <option value="SG">Sài Gòn</option>
-                <option value="DN">Đà Nẵng</option>
+                {stations.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div className={styles.bookingDivider}></div>
 
             <div className={styles.bookingStep}>
               <span className={styles.stepNum}>2</span>
-              <select className={styles.stepSelect}>
+              <select
+                className={styles.stepSelect}
+                aria-label="Ga đến"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              >
                 <option value="">Chọn Ga Đến</option>
-                <option value="SG">Sài Gòn</option>
-                <option value="HN">Hà Nội</option>
-                <option value="DN">Đà Nẵng</option>
+                {stations.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div className={styles.bookingDivider}></div>
 
             <div className={styles.bookingStep}>
               <span className={styles.stepNum}>3</span>
-              <input type="date" className={styles.stepInput} />
-            </div>
-            <div className={styles.bookingDivider}></div>
-
-            <div className={styles.bookingStep}>
-              <span className={styles.stepNum}>4</span>
-              <select className={styles.stepSelect}>
-                <option value="">Loại Ghế</option>
-                <option value="SEAT">Ngồi mềm điều hòa</option>
-                <option value="BED">Giường nằm</option>
-              </select>
+              <input
+                type="date"
+                className={styles.stepInput}
+                aria-label="Ngày đi"
+                min={today}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
             </div>
 
-            <Link href="/trips" className={styles.fastBookBtn}>
+            <button type="button" onClick={handleSearch} className={styles.fastBookBtn}>
               Tìm vé nhanh
-            </Link>
+            </button>
           </div>
+          {error && (
+            <p role="alert" style={{ color: "#dc2626", marginTop: 8, textAlign: "center" }}>
+              {error}
+            </p>
+          )}
         </div>
       </section>
 

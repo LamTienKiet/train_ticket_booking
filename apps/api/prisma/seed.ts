@@ -520,7 +520,8 @@ async function main() {
   // SE1: HAN → SGN — khởi hành 06:00, đến 13:00 hôm sau (~31h)
   const tripSE1_day1 = await prisma.trip.upsert({
     where: { tripCode: 'SE1-20261101' },
-    update: {},
+    // Chạy lại seed thì dời chuyến về ngày mai để luôn có chuyến tìm được
+    update: { departureTime: getDate(1, 6, 0), arrivalTime: getDate(2, 13, 0) },
     create: {
       tripCode: 'SE1-20261101',
       routeId: routeHanSgn.id,
@@ -533,7 +534,7 @@ async function main() {
 
   const tripSE1_day2 = await prisma.trip.upsert({
     where: { tripCode: 'SE1-20261102' },
-    update: {},
+    update: { departureTime: getDate(2, 6, 0), arrivalTime: getDate(3, 13, 0) },
     create: {
       tripCode: 'SE1-20261102',
       routeId: routeHanSgn.id,
@@ -547,7 +548,7 @@ async function main() {
   // SE3: HAN → SGN — khởi hành 19:00, đến hôm kia 02:00
   const tripSE3_day1 = await prisma.trip.upsert({
     where: { tripCode: 'SE3-20261101' },
-    update: {},
+    update: { departureTime: getDate(1, 19, 0), arrivalTime: getDate(3, 3, 0) },
     create: {
       tripCode: 'SE3-20261101',
       routeId: routeHanSgn.id,
@@ -561,7 +562,7 @@ async function main() {
   // Chuyến ngược SGN → HAN
   const tripSE2_day1 = await prisma.trip.upsert({
     where: { tripCode: 'SE2-20261101' },
-    update: {},
+    update: { departureTime: getDate(1, 8, 0), arrivalTime: getDate(2, 16, 0) },
     create: {
       tripCode: 'SE2-20261101',
       routeId: routeSgnHan.id,
