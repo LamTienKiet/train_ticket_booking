@@ -1,0 +1,481 @@
+.main {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: 'Inter', sans-serif;
+}
+
+/* HEADER */
+.header {
+  position: sticky;
+  top: 0;
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  z-index: 50;
+  width: 100%;
+}
+
+.headerContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logoGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brandName {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1e3a8a;
+  letter-spacing: -0.5px;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.buyTicketBtn {
+  background: linear-gradient(90deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  clip-path: polygon(0 0, 100% 0, 95% 50%, 100% 100%, 0 100%, 5% 50%);
+  transition: transform 0.2s;
+}
+
+.buyTicketBtn:hover {
+  transform: scale(1.05);
+}
+
+.navItem {
+  font-size: 14px;
+  color: #475569;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.navItem:hover {
+  color: #3b82f6;
+}
+
+.authGroup {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.loginLink {
+  font-size: 14px;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.loginLink:hover {
+  color: #3b82f6;
+}
+
+.registerLink {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+}
+
+.registerLink:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  color: #3730a3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1.5px solid #a5b4fc;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.userGreeting {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.logoutBtn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.logoutBtn:hover {
+  background: #f8fafc;
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+
+.loyaltyBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background-color: #f0fdf4;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #bbf7d0;
+}
+
+.badgeText {
+  font-size: 10px;
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.badgeSubText {
+  font-size: 11px;
+  color: #eab308;
+  font-weight: 800;
+}
+
+/* HERO SECTION */
+.heroSection {
+  position: relative;
+  width: 100%;
+  padding-bottom: 40px; /* Space for overlapping widget */
+}
+
+.bannerWrapper {
+  width: 100%;
+  height: 450px;
+  overflow: hidden;
+  position: relative;
+}
+
+.bannerImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* WIDGET */
+.bookingWidgetWrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: translateY(50%);
+  z-index: 10;
+}
+
+.bookingWidget {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: stretch;
+  height: 70px;
+  overflow: hidden;
+}
+
+.bookingStep {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+}
+
+.stepNum {
+  background: #f97316;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.stepSelect, .stepInput {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  color: #334155;
+  background: transparent;
+  cursor: pointer;
+}
+
+.bookingDivider {
+  width: 1px;
+  background-color: #e2e8f0;
+  margin: 15px 0;
+}
+
+.fastBookBtn {
+  background: #f1aa76;
+  color: white;
+  border: none;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 0 32px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fastBookBtn:hover {
+  background: #ea580c;
+}
+
+/* POPULAR ROUTES */
+.popularSection {
+  max-width: 1200px;
+  margin: 80px auto 40px;
+  padding: 0 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+
+.sectionTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.titleLine {
+  width: 4px;
+  height: 24px;
+  background-color: #3b82f6;
+}
+
+.highlight {
+  color: #3b82f6;
+}
+
+.filterTabs {
+  display: flex;
+  gap: 24px;
+}
+
+.filterTab {
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  padding-bottom: 4px;
+  position: relative;
+}
+
+.filterTab:hover {
+  color: #1e293b;
+}
+
+.activeFilter {
+  color: #3b82f6;
+}
+
+.activeFilter::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #3b82f6;
+}
+
+.routesGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.routeCard {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.routeCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.cardImageWrapper {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+}
+
+.cardImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.routeCard:hover .cardImage {
+  transform: scale(1.05);
+}
+
+.cardOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.routeCard:hover .cardOverlay {
+  opacity: 1;
+}
+
+.bookNowBtn {
+  background: #f97316;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transform: translateY(20px);
+  transition: transform 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.routeCard:hover .bookNowBtn {
+  transform: translateY(0);
+}
+
+.cardInfo {
+  padding: 16px;
+  text-align: center;
+}
+
+.routeTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.routeCode {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .routesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bookingWidget {
+    flex-wrap: wrap;
+    height: auto;
+  }
+  .bookingStep {
+    flex: 1 1 40%;
+    padding: 16px;
+  }
+  .fastBookBtn {
+    width: 100%;
+    padding: 16px;
+  }
+  .heroSection {
+    padding-bottom: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .navLinks, .authGroup {
+    display: none;
+  }
+  .routesGrid {
+    grid-template-columns: 1fr;
+  }
+}

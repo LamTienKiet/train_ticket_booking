@@ -1,0 +1,959 @@
+/* apps/web/app/tickets/page.module.css */
+
+.main {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-family: inherit;
+  padding-bottom: 60px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   HEADER ĐỒNG BỘ
+   ───────────────────────────────────────────────────────────── */
+.header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.headerContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logoGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.brandName {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.navLinks {
+  display: flex;
+  gap: 24px;
+}
+
+.navItem {
+  color: #475569;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+}
+
+.navItem:hover {
+  color: #1d4ed8;
+}
+
+.activeNav {
+  color: #1d4ed8;
+  font-weight: 700;
+  border-bottom: 2px solid #1d4ed8;
+}
+
+.authGroup {
+  display: flex;
+  gap: 12px;
+}
+
+.loginBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.loginBtn:hover {
+  background-color: #e2e8f0;
+}
+
+.registerBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #1d4ed8;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.registerBtn:hover {
+  background-color: #1e40af;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CONTAINER & LOOKUP HERO CARD
+   ───────────────────────────────────────────────────────────── */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.heroLookupCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.heroLookupTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pageTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+}
+
+.pageSubtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.viewModeSwitch {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+}
+
+.viewModeBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.viewModeBtn:hover {
+  color: #0f172a;
+}
+
+.viewModeActive {
+  background: #ffffff;
+  color: #1d4ed8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* FORM TRA CỨU NHANH */
+.lookupForm {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px dashed #e2e8f0;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+}
+
+@media (max-width: 820px) {
+  .lookupForm {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lookupField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lookupLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.required {
+  color: #ef4444;
+}
+
+.lookupInput {
+  padding: 10px 14px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+}
+
+.lookupInput:focus {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+.lookupActions {
+  display: flex;
+  gap: 10px;
+}
+
+.lookupSubmitBtn {
+  padding: 10px 22px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #1d4ed8;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lookupSubmitBtn:hover {
+  background: #1e40af;
+}
+
+.lookupResetBtn {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lookupResetBtn:hover {
+  background: #e2e8f0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   THANH TAB TRẠNG THÁI
+   ───────────────────────────────────────────────────────────── */
+.statusTabsBar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.statusTabBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.statusTabBtn:hover {
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.statusTabActive {
+  background: #eff6ff;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+}
+
+.statusCountBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.statusTabActive .statusCountBadge {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+/* HƯỚNG DẪN TRA CỨU */
+.lookupHelperBox {
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.lookupHelperBox h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.lookupHelperBox p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 16px 0;
+}
+
+.sampleHintChip {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #1e40af;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DANH SÁCH THẺ ĐƠN ĐẶT VÉ
+   ───────────────────────────────────────────────────────────── */
+.ticketsListContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.bookingCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.bookingCardCancelled {
+  opacity: 0.85;
+}
+
+.bookingCardHeader {
+  padding: 12px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bookingIdGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pnrLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.pnrCode {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.4px;
+}
+
+.bookedAtText {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* BADGES TRẠNG THÁI */
+.statusBadge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.badgeConfirmed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badgePending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.badgeCompleted {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badgeCancelled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* BODY CARD */
+.bookingCardBody {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+@media (max-width: 820px) {
+  .bookingCardBody {
+    grid-template-columns: 1fr;
+  }
+}
+
+.routeTimelineCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trainPill {
+  align-self: flex-start;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+.routeStationsRow {
+  display: grid;
+  grid-template-columns: 1fr 130px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.stationPoint {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeLarge {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.stationName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.dateSmall {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.routeConnector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.durationLabel {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.connectorLine {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.dotStart {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1d4ed8;
+}
+
+.lineDash {
+  flex: 1;
+  height: 2px;
+  border-top: 2px dashed #93c5fd;
+}
+
+.arrowEnd {
+  font-size: 11px;
+  color: #1d4ed8;
+}
+
+/* CỘT HÀNH KHÁCH & GHẾ */
+.passengersCol {
+  border-left: 1px dashed #e2e8f0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 820px) {
+  .passengersCol {
+    border-left: none;
+    border-top: 1px dashed #e2e8f0;
+    padding-left: 0;
+    padding-top: 14px;
+  }
+}
+
+.passengersColTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.seatTagsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.passengerSeatTag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.seatTagCode {
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.seatTagName {
+  font-weight: 600;
+  color: #334155;
+}
+
+/* FOOTER CARD */
+.bookingCardFooter {
+  padding: 14px 20px;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.totalAmountBlock {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.totalLabel {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.totalValue {
+  font-size: 17px;
+  font-weight: 800;
+  color: #ea580c;
+}
+
+.cardActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.primaryBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #1d4ed8;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.primaryBtn:hover {
+  background: #1e40af;
+}
+
+.payNowBtn {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #ea580c;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.payNowBtn:hover {
+  background: #c2410c;
+}
+
+.secondaryBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.secondaryBtn:hover {
+  background: #e2e8f0;
+}
+
+.primaryOutlineBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #ffffff;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.primaryOutlineBtn:hover {
+  background: #eff6ff;
+}
+
+.cancelOutlineBtn {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #dc2626;
+  background: #ffffff;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cancelOutlineBtn:hover {
+  background: #fef2f2;
+}
+
+.dangerBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #dc2626;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dangerBtn:hover {
+  background: #b91c1c;
+}
+
+/* EMPTY STATE */
+.emptyStateBox {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.emptyStateBox h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.emptyStateBox p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MODALS (CHI TIẾT VÉ QR & HỦY VÉ)
+   ───────────────────────────────────────────────────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modalContainer {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.18);
+}
+
+.cancelModalContainer {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.18);
+}
+
+.modalHeader {
+  padding: 18px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modalTitle {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.modalSub {
+  font-size: 13px;
+  color: #475569;
+  margin: 0;
+}
+
+.modalCloseBtn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.modalCloseBtn:hover {
+  color: #0f172a;
+}
+
+.modalBody {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modalTicketsList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modalTicketItem {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #ffffff;
+}
+
+@media (max-width: 600px) {
+  .modalTicketItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.modalTicketInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modalTicketTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modalTicketIndex {
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.modalTicketCode {
+  font-family: monospace;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.modalInfoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+.metaLabel {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.metaVal {
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.metaHighlight {
+  font-size: 13px;
+  color: #1d4ed8;
+}
+
+.modalTicketQr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.qrCaption {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.modalContactSummary {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.modalFooter {
+  padding: 14px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* CANCEL MODAL */
+.refundPolicyBox {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.refundRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #334155;
+}
+
+.refundTotalRow {
+  padding-top: 10px;
+  margin-top: 4px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.refundHint {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.pendingCancelText {
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cancelReasonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+

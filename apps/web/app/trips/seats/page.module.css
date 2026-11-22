@@ -1,0 +1,652 @@
+/* =========================================================================
+   TRANG 2: SƠ ĐỒ CHỌN CHỖ NGỒI (PHONG CÁCH CHUYÊN NGHIỆP, THỰC TẾ)
+   ========================================================================= */
+
+.main {
+  min-height: 100vh;
+  background-color: #f3f4f6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #111827;
+}
+
+/* HEADER */
+.header {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 50;
+}
+
+.headerContainer {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logoGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.brandName {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1d4ed8;
+  letter-spacing: -0.5px;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.navItem {
+  font-size: 14px;
+  color: #4b5563;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.activeNav {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.authGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loginBtn {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  text-decoration: none;
+  padding: 6px 12px;
+}
+
+.registerBtn {
+  background: #1d4ed8;
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* CONTAINER */
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px 16px 60px;
+}
+
+/* NÚT QUAY LẠI TRANG CHUYẾN TÀU */
+.backLinkRow {
+  margin-bottom: 14px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+/* THANH THÔNG TIN TÀU ĐÃ CHỌN */
+.selectedTrainBar {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #1d4ed8;
+  border-radius: 6px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.trainTitleBlock {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.trainHeading {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1d4ed8;
+  margin: 0;
+}
+
+.trainSubHeading {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.trainScheduleBadge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  background: #f3f4f6;
+  padding: 6px 12px;
+  border-radius: 4px;
+}
+
+/* LAYOUT 2 CỘT: SƠ ĐỒ CHỖ (TRÁI) & TÓM TẮT ĐẶT VÉ (PHẢI) */
+.seatLayoutGrid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .seatLayoutGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* KHUNG CHỌN CHỖ */
+.seatMapCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+/* CHỌN TOA */
+.coachSelectorSection {
+  margin-bottom: 18px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 16px;
+}
+
+.coachSelectorLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.coachTabsList {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.coachTabButton {
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 10px 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+
+.coachTabButton:hover {
+  border-color: #1d4ed8;
+}
+
+.activeCoachTab {
+  background: #eff6ff !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 0 0 1px #1d4ed8;
+}
+
+.coachTabNumber {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  display: block;
+}
+
+.coachTabType {
+  font-size: 12px;
+  color: #6b7280;
+  display: block;
+  margin-top: 2px;
+}
+
+.coachTabPrice {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c2410c;
+  display: block;
+  margin-top: 2px;
+}
+
+/* CHÚ THÍCH 3 MÀU CHỖ NGỒI */
+.seatLegendBar {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.legendSquare {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* 1. CHƯA CHỌN: Trắng viền xám */
+.seatColorAvailable {
+  background: #ffffff;
+  border: 1.5px solid #9ca3af;
+}
+
+/* 2. ĐANG CHỌN: Cam nổi bật */
+.seatColorSelecting {
+  background: #ea580c;
+  border: 1.5px solid #c2410c;
+}
+
+/* 3. ĐÃ CHỌN: Xám đặc */
+.seatColorBooked {
+  background: #e5e7eb;
+  border: 1.5px solid #d1d5db;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MÔ PHỎNG THÂN TOA TÀU & BỐ CỤC HÀNH LANG Ở GIỮA
+   ───────────────────────────────────────────────────────────── */
+.carriageFrame {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px 16px;
+}
+
+.carriageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #4b5563;
+  letter-spacing: 0.5px;
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* TOA 1: 4 CỤM TRÊN / 4 CỤM DƯỚI (8 CỤM TỔNG CỘNG) */
+.clustersGridFour {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+
+@media (max-width: 992px) {
+  .clustersGridFour {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* TOA 2 & TOA 3: 2 CỤM TRÊN / 2 CỤM DƯỚI (DÀI VÀ PHÙ HỢP HƠN) */
+.clustersGridTwo {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .clustersGridTwo {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* DÒNG HÀNH LANG TOA XE NẰM Ở GIỮA (YÊU CẦU ĐỀ BÀI) */
+.hallwayDivider {
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border-top: 1.5px dashed #cbd5e1;
+  border-bottom: 1.5px dashed #cbd5e1;
+  padding: 8px 16px;
+  border-radius: 4px;
+  gap: 14px;
+}
+
+.hallwayTrack {
+  flex: 1;
+  height: 1px;
+  background: #cbd5e1;
+}
+
+.hallwayText {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* CARD TỪNG CỤM (TOA 1 - NGỒI MỀM) */
+.clusterCard {
+  background: #ffffff;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s ease;
+}
+
+.clusterCard:hover {
+  border-color: #93c5fd;
+}
+
+/* CARD TỪNG CỤM DÀI (TOA 2 & 3 - KHOANG DÀI VÀ RỘNG HƠN) */
+.clusterCardWide {
+  padding: 16px 20px;
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.clusterCardWide:hover {
+  border-color: #60a5fa;
+}
+
+.clusterHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.clusterTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.clusterTag {
+  font-size: 11px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+/* BÊN TRONG CỤM */
+.clusterSeatsBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.seatPair {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+.seatPairWide {
+  gap: 28px;
+}
+
+.clusterTable {
+  width: 88%;
+  height: 18px;
+  background: #f3f4f6;
+  border: 1px dashed #cbd5e1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.clusterTableWide {
+  height: 22px;
+  width: 88%;
+  background: #eef2f6;
+  font-size: 11px;
+}
+
+/* Ô VUÔNG GHẾ TIÊU CHUẨN (TOA 1) */
+.seatSquare {
+  width: 42px;
+  height: 42px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  user-select: none;
+  outline: none;
+}
+
+/* Ô GHẾ/GIƯỜNG DÀI (TOA 2 & 3) */
+.seatSquareWide {
+  width: 58px;
+  height: 42px;
+  border-radius: 5px;
+}
+
+/* 1. Trạng thái CHƯA CHỌN (Còn trống) */
+.seatSquareAvailable {
+  background: #ffffff;
+  border: 1.5px solid #9ca3af;
+  color: #111827;
+}
+
+.seatSquareAvailable:hover {
+  border-color: #1d4ed8;
+  background: #f0f7ff;
+}
+
+/* 2. Trạng thái ĐANG CHỌN */
+.seatSquareSelecting {
+  background: #ea580c !important;
+  border: 1.5px solid #c2410c !important;
+  color: #ffffff !important;
+}
+
+/* 3. Trạng thái ĐÃ CHỌN (Đã bán) */
+.seatSquareBooked {
+  background: #e5e7eb !important;
+  border: 1.5px solid #d1d5db !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  position: relative;
+}
+
+.seatSquareBooked::after {
+  content: '✕';
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.seatPosLabel {
+  font-size: 9px;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PANEL TÓM TẮT ĐẶT VÉ (BÊN PHẢI)
+   ───────────────────────────────────────────────────────────── */
+.bookingSummaryCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 18px;
+  position: sticky;
+  top: 84px;
+}
+
+.summaryHeader {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 14px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: #4b5563;
+}
+
+.summaryRow strong {
+  color: #111827;
+}
+
+.selectedSeatsBox {
+  margin: 14px 0;
+  padding: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.selectedSeatsTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.seatTagsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.seatTagItem {
+  background: #ffedd5;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.noSeatSelectedText {
+  font-size: 12px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 14px 0;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+}
+
+.totalLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.totalAmount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #c2410c;
+}
+
+.submitBookingBtn {
+  width: 100%;
+  background: #ea580c;
+  color: #ffffff;
+  border: none;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.submitBookingBtn:hover:not(:disabled) {
+  background: #c2410c;
+}
+
+.submitBookingBtn:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.securityNote {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 10px;
+  text-align: center;
+  line-height: 1.4;
+}
