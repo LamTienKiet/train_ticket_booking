@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './mod/auth/auth.module';
@@ -14,33 +16,24 @@ import { TicketModule } from './mod/ticket/ticket.module';
 import { TrainModule } from './mod/train/train.module';
 import { TripModule } from './mod/trip/trip.module';
 import { UserModule } from './mod/user/user.module';
-import { PrismaModule } from './database/prisma.module';
+import { PrismaModule } from './mod/prisma/prisma.module';
 
 @Module({
   imports: [
     PrismaModule,
-    // 1. Load các biến từ file .env
+    // Load các biến từ file .env (DB dùng Prisma qua DATABASE_URL)
     ConfigModule.forRoot({
       isGlobal: true,
     }),
 
-    // 2. Cấu hình kết nối MySQL thông qua TypeORM
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'mysql',
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: configService.get<number>('DB_PORT', 3306),
-        username: configService.get<string>('DB_USERNAME', 'root'),
-        password: configService.get<string>('DB_PASSWORD', ''),
-        database: configService.get<string>('DB_DATABASE', 'train_booking'),
-        autoLoadEntities: true, // Tự động load các Entity tạo ra
-        synchronize: true, // DEV only, Production dùng migrations
-      }),
-      inject: [ConfigService],
-    }),
+    // Cron jobs (dọn booking hết hạn)
+    ScheduleModule.forRoot(),
 
-    // 3. Feature modules
+    // Rate limit mặc định: 100 request/phút/IP. Endpoint nhạy cảm siết thêm bằng @Throttle.
+    // shortcut: lưu đếm trong RAM, chỉ đúng khi chạy 1 instance; chạy nhiều instance thì dùng Redis storage.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+
+    // Feature modules
     AuthModule,
     BookingModule,
     FareModule,
@@ -54,6 +47,6 @@ import { PrismaModule } from './database/prisma.module';
     UserModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

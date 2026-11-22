@@ -1,0 +1,242 @@
+{
+  "info": {
+    "name": "Train Ticket Booking API",
+    "_postman_id": "train-ticket-booking-collection",
+    "description": "API collection cho hệ thống đặt vé tàu hỏa\n\n**Base URL:** http://localhost:3001\n\n**Seed IDs (sau khi chạy `npx prisma db seed`):**\n- Ga Hà Nội: e2b7b777-2de6-4602-ab12-95cb1332fdad\n- Ga Vinh: 27d7b230-acdb-4df0-bfef-ae1f46afa374\n- Ga Huế: ef2475e4-9015-4e7c-bef7-58919644b6ff\n- Ga Đà Nẵng: 0b15af87-7afb-4276-abb6-4c2c4a8cbb3b\n- Ga Nha Trang: 0f0b6976-fe4d-461f-95a3-7e6545f625f4\n- Ga Sài Gòn: c83b773c-d5be-4138-9412-907ac10dba9a\n- Tàu SE1: d6d2dc31-3590-47e9-9042-858b5948840d\n- Tàu SE3: 7f904302-863f-4071-9464-801877b0602b\n- Trip SE1: dfa8b51d-d8af-411c-bf93-da6faa4249fb",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "http://localhost:3001",                         "type": "string" },
+    { "key": "hanoi",      "value": "e2b7b777-2de6-4602-ab12-95cb1332fdad",          "type": "string" },
+    { "key": "vinh",       "value": "27d7b230-acdb-4df0-bfef-ae1f46afa374",          "type": "string" },
+    { "key": "hue",        "value": "ef2475e4-9015-4e7c-bef7-58919644b6ff",          "type": "string" },
+    { "key": "danang",     "value": "0b15af87-7afb-4276-abb6-4c2c4a8cbb3b",          "type": "string" },
+    { "key": "nhatrang",   "value": "0f0b6976-fe4d-461f-95a3-7e6545f625f4",          "type": "string" },
+    { "key": "saigon",     "value": "c83b773c-d5be-4138-9412-907ac10dba9a",          "type": "string" },
+    { "key": "trainSE1",   "value": "d6d2dc31-3590-47e9-9042-858b5948840d",          "type": "string" },
+    { "key": "trainSE3",   "value": "7f904302-863f-4071-9464-801877b0602b",          "type": "string" },
+    { "key": "tripSE1",    "value": "dfa8b51d-d8af-411c-bf93-da6faa4249fb",          "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🏛️ 1. Thông tin Nhà ga (Stations)",
+      "item": [
+        {
+          "name": "GET all stations (kèm số tuyến qua ga)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stations",
+              "host": ["{{baseUrl}}"],
+              "path": ["stations"]
+            },
+            "description": "Lấy danh sách tất cả các ga xe lửa đang hoạt động"
+          }
+        },
+        {
+          "name": "GET stations - tìm kiếm theo tên ga",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stations?search=hà nội",
+              "host": ["{{baseUrl}}"],
+              "path": ["stations"],
+              "query": [
+                { "key": "search", "value": "hà nội" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET station detail - Ga Hà Nội (kèm các tuyến đi qua)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stations/{{hanoi}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["stations", "{{hanoi}}"]
+            },
+            "description": "Chi tiết ga Hà Nội: địa chỉ, toạ độ, danh sách các tuyến đường sắt ghé ga này"
+          }
+        },
+        {
+          "name": "GET station detail - Ga Đà Nẵng",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stations/{{danang}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["stations", "{{danang}}"]
+            }
+          }
+        },
+        {
+          "name": "[ERROR] GET station - not found → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stations/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["stations", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚂 2. Thông tin Đoàn tàu & Toa xe (Trains)",
+      "item": [
+        {
+          "name": "GET all trains (danh sách tàu, tổng toa, tổng ghế)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trains",
+              "host": ["{{baseUrl}}"],
+              "path": ["trains"]
+            },
+            "description": "Danh sách tất cả các đoàn tàu: SE1, SE3, trạng thái, tổng số toa xe và tổng số chỗ ngồi"
+          }
+        },
+        {
+          "name": "GET train detail - Tàu SE1 (chi tiết từng toa, loại toa, danh sách ghế)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trains/{{trainSE1}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["trains", "{{trainSE1}}"]
+            },
+            "description": "Chi tiết đoàn tàu SE1: thông tin chi tiết từng toa xe (toa ghế mềm, toa giường nằm khoang 4, khoang 6) và sơ đồ từng ghế"
+          }
+        },
+        {
+          "name": "GET train detail - Tàu SE3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trains/{{trainSE3}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["trains", "{{trainSE3}}"]
+            }
+          }
+        },
+        {
+          "name": "[ERROR] GET train - not found → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trains/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["trains", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🗓️ 3. Chi tiết Chuyến tàu (Trip Detail & Seats)",
+      "item": [
+        {
+          "name": "GET trip detail - SE1 (Lộ trình dừng, giờ đỗ, bảng giá, số chỗ trống)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trips/{{tripSE1}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips", "{{tripSE1}}"]
+            },
+            "description": "Chi tiết chuyến tàu đầy đủ:\n1. Thông tin đoàn tàu, các toa\n2. Lộ trình chi tiết từng ga dừng (giờ đến, giờ đi, thời gian đỗ ga)\n3. Bảng giá từng loại chỗ (ghế mềm, giường 4, giường 6)\n4. Chính sách giảm giá cho trẻ em/em bé\n5. Thống kê tổng số ghế và số ghế còn trống"
+          }
+        },
+        {
+          "name": "GET trip seats - SE1 (Sơ đồ ghế còn trống từng toa)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trips/{{tripSE1}}/seats",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips", "{{tripSE1}}", "seats"]
+            },
+            "description": "Sơ đồ trạng thái từng ghế theo từng toa tàu: vị trí (cửa sổ / lối đi / tầng), giá vé, trạng thái isAvailable (trống hay đã đặt)"
+          }
+        },
+        {
+          "name": "GET all trips (danh sách tất cả các chuyến)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trips",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips"]
+            }
+          }
+        },
+        {
+          "name": "[ERROR] GET trip detail - not found → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trips/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔍 4. Tìm kiếm Chuyến tàu (Trip Search)",
+      "item": [
+        {
+          "name": "SEARCH HN → SGN ngày 01/11",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{saigon}}&departureDate=2026-11-01&passengers=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips", "search"],
+              "query": [
+                { "key": "originStationId",      "value": "{{hanoi}}" },
+                { "key": "destinationStationId", "value": "{{saigon}}" },
+                { "key": "departureDate",        "value": "2026-11-01" },
+                { "key": "passengers",           "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "SEARCH HN → Đà Nẵng (chặng giữa)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{danang}}&departureDate=2026-11-01",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips", "search"],
+              "query": [
+                { "key": "originStationId",      "value": "{{hanoi}}" },
+                { "key": "destinationStationId", "value": "{{danang}}" },
+                { "key": "departureDate",        "value": "2026-11-01" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

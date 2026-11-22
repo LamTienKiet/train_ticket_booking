@@ -1,0 +1,156 @@
+### Train Ticket Booking API — Trip Search Tests
+### Base URL: http://localhost:3000
+### Chạy: cd apps/api && npm run start:dev
+
+@baseUrl = http://localhost:3001
+
+# ═══════════════════════════════════════════════
+# STATION IDs (từ seed)
+# ═══════════════════════════════════════════════
+@hanoi    = e2b7b777-2de6-4602-ab12-95cb1332fdad
+@vinh     = 27d7b230-acdb-4df0-bfef-ae1f46afa374
+@hue      = ef2475e4-9015-4e7c-bef7-58919644b6ff
+@danang   = 0b15af87-7afb-4276-abb6-4c2c4a8cbb3b
+@nhatrang = 0f0b6976-fe4d-461f-95a3-7e6545f625f4
+@saigon   = c83b773c-d5be-4138-9412-907ac10dba9a
+
+@tripSE1  = dfa8b51d-d8af-411c-bf93-da6faa4249fb
+
+@trainSE1 = d6d2dc31-3590-47e9-9042-858b5948840d
+@trainSE3 = 7f904302-863f-4071-9464-801877b0602b
+
+# ═══════════════════════════════════════════════
+# 1. STATION APIs (Xem thông tin nhà ga)
+# ═══════════════════════════════════════════════
+
+### 1.1 Lấy tất cả ga (kèm số tuyến tàu chạy qua)
+GET {{baseUrl}}/stations
+
+###
+
+### 1.2 Tìm kiếm ga theo tên
+GET {{baseUrl}}/stations?search=hà nội
+
+###
+
+### 1.3 Chi tiết ga Hà Nội (kèm các tuyến tàu đi qua)
+GET {{baseUrl}}/stations/{{hanoi}}
+
+###
+
+### 1.4 Chi tiết ga Đà Nẵng
+GET {{baseUrl}}/stations/{{danang}}
+
+###
+
+# ═══════════════════════════════════════════════
+# 2. TRAIN APIs (Xem thông tin đoàn tàu & toa xe)
+# ═══════════════════════════════════════════════
+
+### 2.1 Xem danh sách các đoàn tàu (SE1, SE3, tổng toa, tổng ghế)
+GET {{baseUrl}}/trains
+
+###
+
+### 2.2 Xem chi tiết tàu SE1 (chi tiết từng toa, loại toa, danh sách ghế)
+GET {{baseUrl}}/trains/{{trainSE1}}
+
+###
+
+### 2.3 Xem chi tiết tàu SE3
+GET {{baseUrl}}/trains/{{trainSE3}}
+
+###
+
+# ═══════════════════════════════════════════════
+# 3. TRIP DETAIL & SEATS (Xem chi tiết chuyến tàu)
+# ═══════════════════════════════════════════════
+
+### 3.1 Chi tiết chuyến tàu SE1:
+### Trả về: lộ trình chi tiết từng ga dừng, giờ đến, giờ đi, thời gian đỗ ga,
+### bảng giá từng loại chỗ (ghế mềm, giường 4, giường 6), chiết khấu, và tổng số ghế còn trống
+GET {{baseUrl}}/trips/{{tripSE1}}
+
+###
+
+### 3.2 Sơ đồ chi tiết các ghế còn trống của chuyến SE1
+GET {{baseUrl}}/trips/{{tripSE1}}/seats
+
+###
+
+# ═══════════════════════════════════════════════
+# TRIP SEARCH — Hà Nội → Sài Gòn
+# ═══════════════════════════════════════════════
+
+### 4. Tìm chuyến HN → SGN ngày 01/11
+GET {{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{saigon}}&departureDate=2026-11-01&passengers=2
+
+###
+
+### 5. Tìm chuyến HN → Đà Nẵng ngày 01/11 (chặng giữa)
+GET {{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{danang}}&departureDate=2026-11-01
+
+###
+
+### 6. Tìm chuyến HN → Vinh ngày 01/11 (chặng ngắn)
+GET {{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{vinh}}&departureDate=2026-11-01
+
+###
+
+### 7. Tìm chuyến ngược SGN → HN ngày 01/11
+GET {{baseUrl}}/trips/search?originStationId={{saigon}}&destinationStationId={{hanoi}}&departureDate=2026-11-01
+
+###
+
+### 8. Tìm ngày 02/11 (SE1 chuyến 2)
+GET {{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{saigon}}&departureDate=2026-11-02
+
+###
+
+# ═══════════════════════════════════════════════
+# TRIP DETAIL & SEATS
+# ═══════════════════════════════════════════════
+
+### 9. Chi tiết chuyến SE1
+GET {{baseUrl}}/trips/{{tripSE1}}
+
+###
+
+### 10. Sơ đồ ghế còn trống của SE1
+GET {{baseUrl}}/trips/{{tripSE1}}/seats
+
+###
+
+# ═══════════════════════════════════════════════
+# VALIDATION ERRORS (phải trả về lỗi)
+# ═══════════════════════════════════════════════
+
+### 11. Ga đi = Ga đến → 400
+GET {{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{hanoi}}&departureDate=2026-11-01
+
+###
+
+### 12. Thiếu departureDate → 400
+GET {{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{saigon}}
+
+###
+
+### 13. Ngày sai format → 400
+GET {{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{saigon}}&departureDate=01-11-2026
+
+###
+
+### 14. passengers = 10 (vượt max) → 400
+GET {{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{saigon}}&departureDate=2026-11-01&passengers=10
+
+###
+
+### 15. Trip không tồn tại → 404
+GET {{baseUrl}}/trips/00000000-0000-0000-0000-000000000000
+
+###
+
+### 16. Tìm ngày không có chuyến → []
+GET {{baseUrl}}/trips/search?originStationId={{hanoi}}&destinationStationId={{saigon}}&departureDate=2026-12-31
+
+###
