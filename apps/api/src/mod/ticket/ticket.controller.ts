@@ -1,34 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { TicketService } from './ticket.service';
-import { CreateTicketDto } from './dto/create-ticket.dto';
-import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { JwtUser } from '../booking/booking.service';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-@Controller('ticket')
+@Controller('tickets')
 export class TicketController {
   constructor(private readonly ticketService: TicketService) {}
 
-  @Post()
-  create(@Body() createTicketDto: CreateTicketDto) {
-    return this.ticketService.create(createTicketDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.ticketService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ticketService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTicketDto: UpdateTicketDto) {
-    return this.ticketService.update(+id, updateTicketDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ticketService.remove(+id);
+  /** Chủ vé, STAFF/ADMIN, hoặc người nhập đúng ?phone= mới xem được */
+  @Get(':ticketNumber')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @UseGuards(OptionalJwtAuthGuard)
+  findByTicketNumber(
+    @Param('ticketNumber') ticketNumber: string,
+    @CurrentUser() user: JwtUser | null,
+    @Query('phone') phone?: string,
+  ) {
+    return this.ticketService.findByTicketNumber(ticketNumber, user, phone);
   }
 }

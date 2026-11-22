@@ -9,7 +9,9 @@ describe('PaymentController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PaymentController],
       providers: [PaymentService],
-    }).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
     controller = module.get<PaymentController>(PaymentController);
   });
