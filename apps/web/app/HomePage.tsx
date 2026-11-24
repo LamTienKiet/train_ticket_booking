@@ -1,13 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import Navbar from "./components/Navbar";
 import { api } from "./utils/axiosClient";
+import { fmtDate, fmtTime } from "./utils/format";
 
 type Station = { id: string; name: string; city: string };
+
+// Dạng 1 phần tử của GET /trips (chuyến sắp chạy, đã tính giá & chỗ trống cả tuyến)
+type UpcomingTrip = {
+  id: string;
+  departureTime: string;
+  arrivalTime: string;
+  durationMinutes: number;
+  train: { code: string; name: string };
+  originStation: { id: string; name: string; city: string; code: string } | null;
+  destinationStation: { id: string; name: string; city: string; code: string } | null;
+  faresByType: { basePrice: number }[];
+  totalAvailableSeats: number;
+};
+
+// Ảnh minh họa theo ga đến; ga khác dùng nền gradient
+const CITY_IMAGES: Record<string, string> = {
+  SGN: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&q=80&w=600",
+  DAD: "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&q=80&w=600",
+  LCA: "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&q=80&w=600",
+};
+
+const FILTERS = [
+  { key: "all", label: "Sắp khởi hành" },
+  { key: "today", label: "Hôm nay" },
+  { key: "week", label: "7 ngày tới" },
+] as const;
+type FilterKey = (typeof FILTERS)[number]["key"];
+
+const vnDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
 export default function HomePage() {
   const router = useRouter();
@@ -23,7 +53,31 @@ export default function HomePage() {
       .get<Station[]>("/stations")
       .then((res) => setStations(res.data))
       .catch(() => setError("Không tải được danh sách ga. Vui lòng thử lại."));
+    api
+      .get<UpcomingTrip[]>("/trips")
+      .then((res) => setTrips(res.data))
+      .catch(() => setTripsError(true));
   }, []);
+
+  const [trips, setTrips] = useState<UpcomingTrip[] | null>(null);
+  const [tripsError, setTripsError] = useState(false);
+  const [filter, setFilter] = useState<FilterKey>("all");
+
+  const visibleTrips = useMemo(() => {
+    const now = new Date();
+    const todayKey = vnDay(now);
+    const weekEnd = now.getTime() + 7 * 24 * 3600 * 1000;
+    return (trips ?? [])
+      .filter((t) => t.originStation && t.destinationStation)
+      .filter((t) =>
+        filter === "today"
+          ? vnDay(new Date(t.departureTime)) === todayKey
+          : filter === "week"
+            ? new Date(t.departureTime).getTime() <= weekEnd
+            : true,
+      )
+      .slice(0, 8);
+  }, [trips, filter]);
 
   const handleSearch = () => {
     if (!from || !to || !date) return setError("Vui lòng chọn ga đi, ga đến và ngày đi.");
@@ -31,37 +85,6 @@ export default function HomePage() {
     setError("");
     router.push(`/trips?${new URLSearchParams({ from, to, date })}`);
   };
-
-  const popularRoutes = [
-    {
-      id: 1,
-      name: "Sài Gòn ➔ Hà Nội",
-      trainCode: "Tàu SE1, SE3, SE5",
-      image:
-        "https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&q=80&w=600",
-    },
-    {
-      id: 2,
-      name: "Đà Nẵng ➔ Huế",
-      trainCode: "Tàu SE19, SE20",
-      image:
-        "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&q=80&w=600",
-    },
-    {
-      id: 3,
-      name: "Hà Nội ➔ Sapa (Lào Cai)",
-      trainCode: "Tàu SP1, SP3",
-      image:
-        "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&q=80&w=600",
-    },
-    {
-      id: 4,
-      name: "Sài Gòn ➔ Nha Trang",
-      trainCode: "Tàu SNT1, SNT2",
-      image:
-        "https://images.unsplash.com/photo-1538356111053-748a48e1acb8?auto=format&fit=crop&q=80&w=600",
-    },
-  ];
 
   return (
     <main className={styles.main}>
@@ -142,46 +165,108 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* POPULAR ROUTES SECTION */}
+      {/* CHUYẾN TÀU SẮP KHỞI HÀNH (DỮ LIỆU THẬT TỪ GET /trips) */}
       <section className={styles.popularSection}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>
             <span className={styles.titleLine}></span>
-            CHUYẾN TÀU <span className={styles.highlight}>PHỔ BIẾN</span>
+            CHUYẾN TÀU <span className={styles.highlight}>SẮP KHỞI HÀNH</span>
           </h2>
-          <div className={styles.filterTabs}>
-            <button className={`${styles.filterTab} ${styles.activeFilter}`}>
-              Đang chạy
-            </button>
-            <button className={styles.filterTab}>Sắp chạy</button>
-            <button className={styles.filterTab}>Tàu cao tốc</button>
-            <button className={styles.filterTab}>Toàn quốc</button>
+          <div className={styles.filterTabs} role="tablist">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                role="tab"
+                aria-selected={filter === f.key}
+                onClick={() => setFilter(f.key)}
+                className={`${styles.filterTab} ${filter === f.key ? styles.activeFilter : ""}`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className={styles.routesGrid}>
-          {popularRoutes.map((route) => (
-            <div key={route.id} className={styles.routeCard}>
-              <div className={styles.cardImageWrapper}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={route.image}
-                  alt={route.name}
-                  className={styles.cardImage}
-                />
-                <div className={styles.cardOverlay}>
-                  <Link href="/trips" className={styles.bookNowBtn}>
-                    Đặt Ngay
-                  </Link>
-                </div>
-              </div>
-              <div className={styles.cardInfo}>
-                <h3 className={styles.routeTitle}>{route.name}</h3>
-                <p className={styles.routeCode}>{route.trainCode}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {tripsError ? (
+          <p className={styles.tripsStatus}>Không tải được danh sách chuyến tàu. Vui lòng thử lại sau.</p>
+        ) : !trips ? (
+          <div className={styles.routesGrid} aria-busy="true">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className={`${styles.routeCard} ${styles.skeletonCard}`} />
+            ))}
+          </div>
+        ) : visibleTrips.length === 0 ? (
+          <p className={styles.tripsStatus}>Không có chuyến nào trong khoảng thời gian này.</p>
+        ) : (
+          <div className={styles.routesGrid}>
+            {visibleTrips.map((t) => {
+              const o = t.originStation!;
+              const d = t.destinationStation!;
+              const img = CITY_IMAGES[d.code];
+              const minPrice = Math.min(...t.faresByType.map((f) => f.basePrice));
+              const hours = Math.floor(t.durationMinutes / 60);
+              const mins = t.durationMinutes % 60;
+              return (
+                <Link
+                  key={t.id}
+                  href={`/trips/seats?tripId=${t.id}&from=${o.id}&to=${d.id}`}
+                  className={styles.routeCard}
+                  aria-label={`Tàu ${t.train.code} ${o.name} đến ${d.name}, khởi hành ${fmtTime(t.departureTime)} ngày ${fmtDate(t.departureTime)}`}
+                >
+                  <div className={styles.cardImageWrapper}>
+                    {img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={img} alt="" className={styles.cardImage} />
+                    ) : (
+                      <div className={styles.cardImageFallback}>{d.city}</div>
+                    )}
+                    <span className={styles.trainBadge}>{t.train.code}</span>
+                    <span
+                      className={`${styles.seatsBadge} ${t.totalAvailableSeats === 0 ? styles.seatsBadgeFull : ""}`}
+                    >
+                      {t.totalAvailableSeats > 0 ? `Còn ${t.totalAvailableSeats} chỗ` : "Hết chỗ"}
+                    </span>
+                  </div>
+
+                  <div className={styles.cardInfo}>
+                    <h3 className={styles.routeTitle}>
+                      {o.city} → {d.city}
+                    </h3>
+                    <p className={styles.routeCode}>{t.train.name}</p>
+
+                    <div className={styles.tripTimes}>
+                      <div>
+                        <strong>{fmtTime(t.departureTime)}</strong>
+                        <span>{fmtDate(t.departureTime)}</span>
+                      </div>
+                      <span className={styles.tripDuration}>
+                        {hours}h{mins ? ` ${mins}m` : ""}
+                      </span>
+                      <div className={styles.tripTimeEnd}>
+                        <strong>{fmtTime(t.arrivalTime)}</strong>
+                        <span>{fmtDate(t.arrivalTime)}</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.cardFooter}>
+                      <span className={styles.cardPrice}>
+                        {Number.isFinite(minPrice) ? (
+                          <>
+                            từ <strong>{minPrice.toLocaleString("vi-VN")} đ</strong>
+                          </>
+                        ) : (
+                          "Chưa có giá"
+                        )}
+                      </span>
+                      <span className={styles.cardCta}>Xem chi tiết →</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
     </main>
   );

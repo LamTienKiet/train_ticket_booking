@@ -2,25 +2,18 @@
 
 import styles from "../page.module.css";
 
-interface HoldSeatCountdownProps {
-  timeLeft?: string;
-}
-
-export default function HoldSeatCountdown({
-  timeLeft = "09:48",
-}: HoldSeatCountdownProps) {
+// Chỗ chỉ được giữ khi đơn được tạo (POST /bookings), nên ở bước này chỉ báo trước thời gian giữ chỗ
+export default function HoldSeatCountdown() {
   return (
     <div className={styles.holdSeatBanner}>
-      <div className={styles.bannerIcon}>⏱</div>
-      <div className={styles.bannerContent}>
-        <strong>Chỗ của bạn đang được tạm giữ: </strong>
-        <span>
-          Vui lòng hoàn tất nhập thông tin hành khách và thanh toán trong vòng{" "}
-          <span className={styles.countdownHighlight}>{timeLeft}</span> phút để
-          giữ vé.
-        </span>
+      <span className={styles.bannerIcon} aria-hidden>
+        ⏱
+      </span>
+      <div>
+        <strong>Giữ chỗ 10 phút sau khi xác nhận.</strong>{" "}
+        Ghế chưa được giữ cho tới khi bạn bấm <b>“Xác nhận &amp; thanh toán”</b> — hãy điền thông tin và
+        xác nhận sớm để không bị người khác đặt mất.
       </div>
     </div>
   );
 }
-

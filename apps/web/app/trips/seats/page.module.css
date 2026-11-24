@@ -1,652 +1,993 @@
 /* =========================================================================
-   TRANG 2: SƠ ĐỒ CHỌN CHỖ NGỒI (PHONG CÁCH CHUYÊN NGHIỆP, THỰC TẾ)
+   TRANG CHỌN CHỖ NGỒI
    ========================================================================= */
 
 .main {
+  --primary: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --primary-line: #bfdbfe;
+  --accent: #ea580c;
+  --accent-dark: #c2410c;
+  --accent-soft: #fff7ed;
+  --text: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --ok: #15803d;
+
   min-height: 100vh;
-  background-color: #f3f4f6;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #111827;
+  background: linear-gradient(180deg, #eef3fb 0, #f4f6fa 320px);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
 }
 
-/* HEADER */
-.header {
-  position: sticky;
-  top: 0;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  z-index: 50;
-}
-
-.headerContainer {
-  max-width: 1180px;
+.container {
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 16px;
-  height: 64px;
+  padding: 20px 16px 64px;
+}
+
+.statusBox {
+  padding: 60px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ── QUAY LẠI + TIẾN TRÌNH ───────────────────────────────────── */
+.topRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.logoGroup {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-}
-
-.brandName {
-  font-size: 20px;
-  font-weight: 800;
-  color: #1d4ed8;
-  letter-spacing: -0.5px;
-}
-
-.navLinks {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.navItem {
-  font-size: 14px;
-  color: #4b5563;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.activeNav {
-  color: #1d4ed8;
-  font-weight: 600;
-}
-
-.authGroup {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.loginBtn {
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-  text-decoration: none;
-  padding: 6px 12px;
-}
-
-.registerBtn {
-  background: #1d4ed8;
-  color: #ffffff;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-}
-
-/* CONTAINER */
-.container {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 18px 16px 60px;
-}
-
-/* NÚT QUAY LẠI TRANG CHUYẾN TÀU */
-.backLinkRow {
-  margin-bottom: 14px;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 .backLink {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 14px;
   font-weight: 600;
-  color: #1d4ed8;
-  text-decoration: none;
+  color: var(--primary);
+  cursor: pointer;
 }
 
 .backLink:hover {
   text-decoration: underline;
 }
 
-/* THANH THÔNG TIN TÀU ĐÃ CHỌN */
-.selectedTrainBar {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-left: 4px solid #1d4ed8;
-  border-radius: 6px;
-  padding: 14px 18px;
+.stepper {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 20px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 6px;
 }
 
-.trainTitleBlock {
+.step {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.step:not(:last-child)::after {
+  content: "";
+  width: 28px;
+  height: 2px;
+  background: var(--line);
+  margin-left: 2px;
+}
+
+.stepDot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--surface);
+  border: 1.5px solid #cbd5e1;
+  color: var(--muted);
+}
+
+.stepDone .stepDot {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
+
+.stepDone::after {
+  background: var(--ok) !important;
+}
+
+.stepActive {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.stepActive .stepDot {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15);
+}
+
+@media (max-width: 720px) {
+  .stepLabel {
+    display: none;
+  }
+  .stepActive .stepLabel {
+    display: inline;
+  }
+}
+
+/* ── THẺ THÔNG TIN CHUYẾN ────────────────────────────────────── */
+.tripCard {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 28px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.tripTrain {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
-.trainHeading {
-  font-size: 18px;
+.trainCodeBadge {
+  min-width: 56px;
+  height: 56px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: #fff;
   font-weight: 800;
-  color: #1d4ed8;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.5px;
+}
+
+.trainHeading {
+  font-size: 20px;
+  font-weight: 800;
   margin: 0;
+  color: var(--text);
 }
 
-.trainSubHeading {
+.trainName {
   font-size: 13px;
-  color: #4b5563;
+  color: var(--muted);
 }
 
-.trainScheduleBadge {
-  font-size: 13px;
+.tripRoute {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.routePoint {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.routePointEnd {
+  text-align: right;
+}
+
+.routeTime {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.routeLabel {
+  font-size: 12px;
   font-weight: 600;
-  color: #374151;
-  background: #f3f4f6;
-  padding: 6px 12px;
-  border-radius: 4px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.6;
 }
 
-/* LAYOUT 2 CỘT: SƠ ĐỒ CHỖ (TRÁI) & TÓM TẮT ĐẶT VÉ (PHẢI) */
+.routeStation {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.routeLine {
+  flex: 1;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.routeDuration {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.routeTrack {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #94a3b8 0 6px, transparent 6px 10px);
+}
+
+.routeTrack::before,
+.routeTrack::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.routeTrack::before {
+  left: 0;
+  background: var(--primary);
+}
+
+.routeTrack::after {
+  right: 0;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+}
+
+.tripDate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-left: 24px;
+  border-left: 1px solid var(--line);
+}
+
+.tripDateLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tripDate strong {
+  font-size: 16px;
+}
+
+@media (max-width: 860px) {
+  .tripCard {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .tripDate {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0 0;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* ── LAYOUT 2 CỘT ────────────────────────────────────────────── */
 .seatLayoutGrid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
   align-items: start;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 960px) {
   .seatLayoutGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-/* KHUNG CHỌN CHỖ */
 .seatMapCard {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-/* CHỌN TOA */
-.coachSelectorSection {
-  margin-bottom: 18px;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 16px;
-}
-
-.coachSelectorLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 10px;
-}
-
-.coachTabsList {
+.sectionTitle {
   display: flex;
+  align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 14px;
 }
 
-.coachTabButton {
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 10px 16px;
-  cursor: pointer;
+.sectionNum {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── DẢI TOA TÀU ─────────────────────────────────────────────── */
+.trainStrip {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 10px 2px 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+
+.coachTab {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
   text-align: left;
-  transition: all 0.15s;
+  font: inherit;
+  background: var(--surface-2);
+  border: 1.5px solid var(--line);
+  border-radius: 10px 10px 6px 6px;
+  padding: 12px 14px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
-.coachTabButton:hover {
-  border-color: #1d4ed8;
+/* Bánh xe trang trí dưới mỗi toa */
+.coachTab::before,
+.coachTab::after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #475569;
+  border: 2px solid var(--surface);
 }
 
-.activeCoachTab {
-  background: #eff6ff !important;
-  border-color: #1d4ed8 !important;
-  box-shadow: 0 0 0 1px #1d4ed8;
+.coachTab::before {
+  left: 22px;
+}
+
+.coachTab::after {
+  right: 22px;
+}
+
+.coachTab:hover {
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+}
+
+.coachTab:focus-visible {
+  outline: 3px solid rgba(29, 78, 216, 0.35);
+  outline-offset: 2px;
+}
+
+.coachTabActive {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.15);
 }
 
 .coachTabNumber {
-  font-size: 14px;
-  font-weight: 700;
-  color: #111827;
-  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.coachTabActive .coachTabNumber {
+  color: var(--primary);
 }
 
 .coachTabType {
-  font-size: 12px;
-  color: #6b7280;
-  display: block;
-  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
 }
 
 .coachTabPrice {
-  font-size: 12px;
-  font-weight: 600;
-  color: #c2410c;
-  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-dark);
   margin-top: 2px;
 }
 
-/* CHÚ THÍCH 3 MÀU CHỖ NGỒI */
+.coachTabFree {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ok);
+  background: #dcfce7;
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-top: 4px;
+}
+
+.coachTabFull {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.coachPickedBadge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface);
+}
+
+.locomotive {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 26px 0 16px;
+  border-radius: 6px 40px 6px 6px;
+  background: linear-gradient(135deg, #334155, #0f172a);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── CHÚ THÍCH ───────────────────────────────────────────────── */
 .seatLegendBar {
   display: flex;
   align-items: center;
-  gap: 28px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
+  gap: 24px;
   flex-wrap: wrap;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
 }
 
 .legendItem {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #374151;
+  font-size: 13.5px;
+  color: #334155;
 }
 
-.legendSquare {
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
+.legendItem b {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.legendSwatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px 6px 4px 4px;
   display: inline-block;
 }
 
-/* 1. CHƯA CHỌN: Trắng viền xám */
-.seatColorAvailable {
-  background: #ffffff;
-  border: 1.5px solid #9ca3af;
-}
-
-/* 2. ĐANG CHỌN: Cam nổi bật */
-.seatColorSelecting {
-  background: #ea580c;
-  border: 1.5px solid #c2410c;
-}
-
-/* 3. ĐÃ CHỌN: Xám đặc */
-.seatColorBooked {
-  background: #e5e7eb;
-  border: 1.5px solid #d1d5db;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   MÔ PHỎNG THÂN TOA TÀU & BỐ CỤC HÀNH LANG Ở GIỮA
-   ───────────────────────────────────────────────────────────── */
+/* ── THÂN TOA ────────────────────────────────────────────────── */
 .carriageFrame {
-  background: #f9fafb;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 20px 16px;
+  background: var(--surface-2);
+  border: 2px solid #cbd5e1;
+  border-radius: 16px 28px 28px 16px;
+  padding: 18px;
 }
 
 .carriageHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.carriageTitle {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.carriageSub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.carriageDirection {
   font-size: 12px;
   font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-line);
+  border-radius: 999px;
+  padding: 4px 12px;
   text-transform: uppercase;
-  color: #4b5563;
   letter-spacing: 0.5px;
-  margin-bottom: 18px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e5e7eb;
 }
 
-/* TOA 1: 4 CỤM TRÊN / 4 CỤM DƯỚI (8 CỤM TỔNG CỘNG) */
 .clustersGridFour {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
-@media (max-width: 992px) {
-  .clustersGridFour {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* TOA 2 & TOA 3: 2 CỤM TRÊN / 2 CỤM DƯỚI (DÀI VÀ PHÙ HỢP HƠN) */
 .clustersGridTwo {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
-@media (max-width: 640px) {
-  .clustersGridTwo {
-    grid-template-columns: 1fr;
+@media (max-width: 1100px) {
+  .clustersGridFour {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* DÒNG HÀNH LANG TOA XE NẰM Ở GIỮA (YÊU CẦU ĐỀ BÀI) */
+@media (max-width: 560px) {
+  .clustersGridTwo,
+  .clustersGridFour {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .hallwayDivider {
   margin: 16px 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: #f1f5f9;
-  border-top: 1.5px dashed #cbd5e1;
-  border-bottom: 1.5px dashed #cbd5e1;
-  padding: 8px 16px;
-  border-radius: 4px;
   gap: 14px;
+  padding: 8px 4px;
 }
 
 .hallwayTrack {
   flex: 1;
-  height: 1px;
-  background: #cbd5e1;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #cbd5e1 0 8px, transparent 8px 14px);
 }
 
 .hallwayText {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--muted);
   letter-spacing: 2px;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-/* CARD TỪNG CỤM (TOA 1 - NGỒI MỀM) */
+/* ── CỤM 4 CHỖ ───────────────────────────────────────────────── */
 .clusterCard {
-  background: #ffffff;
-  border: 1.5px solid #d1d5db;
-  border-radius: 8px;
-  padding: 12px 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.15s ease;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.clusterCard:hover {
-  border-color: #93c5fd;
-}
-
-/* CARD TỪNG CỤM DÀI (TOA 2 & 3 - KHOANG DÀI VÀ RỘNG HƠN) */
 .clusterCardWide {
-  padding: 16px 20px;
-  border-color: #cbd5e1;
-  background: #ffffff;
-}
-
-.clusterCardWide:hover {
-  border-color: #60a5fa;
+  padding: 14px 18px;
 }
 
 .clusterHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  border-bottom: 1px solid #f3f4f6;
-  padding-bottom: 6px;
+  gap: 6px;
   margin-bottom: 10px;
 }
 
 .clusterTitle {
   font-size: 13px;
   font-weight: 700;
-  color: #1f2937;
+  color: #334155;
 }
 
 .clusterTag {
   font-size: 11px;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--ok);
+  background: #f0fdf4;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
-/* BÊN TRONG CỤM */
+.clusterTagFull {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
 .clusterSeatsBody {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: 100%;
 }
 
 .seatPair {
   display: flex;
-  gap: 10px;
   justify-content: center;
+  gap: 10px;
   width: 100%;
 }
 
-.seatPairWide {
-  gap: 28px;
+.clusterCardWide .seatPair {
+  gap: 20px;
 }
 
 .clusterTable {
-  width: 88%;
-  height: 18px;
-  background: #f3f4f6;
-  border: 1px dashed #cbd5e1;
-  border-radius: 4px;
+  width: 80%;
+  height: 20px;
+  border-radius: 6px;
+  background: #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  color: #64748b;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
-.clusterTableWide {
-  height: 22px;
-  width: 88%;
-  background: #eef2f6;
-  font-size: 11px;
-}
-
-/* Ô VUÔNG GHẾ TIÊU CHUẨN (TOA 1) */
-.seatSquare {
-  width: 42px;
-  height: 42px;
-  border-radius: 4px;
+/* ── GHẾ ─────────────────────────────────────────────────────── */
+.seat {
+  position: relative;
+  width: 54px;
+  height: 50px;
+  border-radius: 10px 10px 6px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
+  gap: 1px;
+  font: inherit;
   cursor: pointer;
-  transition: all 0.1s ease;
   user-select: none;
-  outline: none;
+  transition: transform 0.12s, box-shadow 0.12s, background 0.12s, border-color 0.12s;
 }
 
-/* Ô GHẾ/GIƯỜNG DÀI (TOA 2 & 3) */
-.seatSquareWide {
-  width: 58px;
-  height: 42px;
-  border-radius: 5px;
+.seatWide {
+  width: 78px;
 }
 
-/* 1. Trạng thái CHƯA CHỌN (Còn trống) */
-.seatSquareAvailable {
-  background: #ffffff;
-  border: 1.5px solid #9ca3af;
-  color: #111827;
+/* Tựa lưng ghế */
+.seat::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 18%;
+  right: 18%;
+  height: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.25;
 }
 
-.seatSquareAvailable:hover {
-  border-color: #1d4ed8;
-  background: #f0f7ff;
+.seat:focus-visible {
+  outline: 3px solid rgba(29, 78, 216, 0.4);
+  outline-offset: 2px;
 }
 
-/* 2. Trạng thái ĐANG CHỌN */
-.seatSquareSelecting {
-  background: #ea580c !important;
-  border: 1.5px solid #c2410c !important;
-  color: #ffffff !important;
+.seatNumber {
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 4px;
 }
 
-/* 3. Trạng thái ĐÃ CHỌN (Đã bán) */
-.seatSquareBooked {
-  background: #e5e7eb !important;
-  border: 1.5px solid #d1d5db !important;
-  color: #9ca3af !important;
-  cursor: not-allowed !important;
-  position: relative;
-}
-
-.seatSquareBooked::after {
-  content: '✕';
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.seatPosLabel {
-  font-size: 9px;
+.seatMeta {
+  font-size: 10px;
   font-weight: 500;
-  opacity: 0.75;
+  opacity: 0.8;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   PANEL TÓM TẮT ĐẶT VÉ (BÊN PHẢI)
-   ───────────────────────────────────────────────────────────── */
+.seatAvailable {
+  background: var(--surface);
+  border: 1.5px solid #94a3b8;
+  color: var(--text);
+}
+
+.seat.seatAvailable:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(29, 78, 216, 0.15);
+}
+
+.seatSelecting {
+  background: var(--accent);
+  border: 1.5px solid var(--accent-dark);
+  color: #fff;
+}
+
+.seat.seatSelecting {
+  box-shadow: 0 6px 14px rgba(234, 88, 12, 0.35);
+  transform: translateY(-2px);
+}
+
+.seatBooked {
+  background: repeating-linear-gradient(135deg, #e2e8f0 0 6px, #f1f5f9 6px 12px);
+  border: 1.5px solid #cbd5e1;
+  color: #94a3b8;
+}
+
+.seat.seatBooked {
+  cursor: not-allowed;
+}
+
+.seat.seatBooked .seatNumber {
+  text-decoration: line-through;
+}
+
+/* ── TÓM TẮT ĐẶT VÉ ──────────────────────────────────────────── */
 .bookingSummaryCard {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 18px;
   position: sticky;
-  top: 84px;
+  top: 88px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+@media (max-width: 960px) {
+  .bookingSummaryCard {
+    position: static;
+  }
 }
 
 .summaryHeader {
-  font-size: 16px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 14px 0;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e5e7eb;
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0 0 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.summaryList {
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .summaryRow {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
-  margin-bottom: 8px;
-  color: #4b5563;
+  gap: 12px;
+  font-size: 14px;
 }
 
-.summaryRow strong {
-  color: #111827;
+.summaryRow dt {
+  color: var(--muted);
+}
+
+.summaryRow dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
 }
 
 .selectedSeatsBox {
-  margin: 14px 0;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
   padding: 12px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  margin-bottom: 16px;
 }
 
 .selectedSeatsTitle {
-  font-size: 12px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-}
-
-.seatTagsList {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 10px;
 }
 
-.seatTagItem {
-  background: #ffedd5;
-  color: #9a3412;
-  border: 1px solid #fed7aa;
-  padding: 3px 8px;
-  border-radius: 4px;
+.clearBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
   font-size: 12px;
   font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
 }
 
-.noSeatSelectedText {
+.clearBtn:hover {
+  color: #b91c1c;
+  text-decoration: underline;
+}
+
+.emptySeats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.emptyIcon {
+  font-size: 24px;
+}
+
+.seatTicketList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.seatTicket {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid #fed7aa;
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 8px 8px 10px;
+}
+
+.seatTicketInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.seatTicketMain {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.seatTicketSub {
   font-size: 12px;
-  color: #9ca3af;
-  font-style: italic;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.divider {
-  height: 1px;
-  background: #e5e7eb;
-  margin: 14px 0;
+.seatTicketPrice {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  white-space: nowrap;
+}
+
+.removeSeatBtn {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.removeSeatBtn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .totalRow {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 16px;
+  padding-top: 14px;
+  margin-bottom: 14px;
+  border-top: 1px dashed #cbd5e1;
 }
 
 .totalLabel {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .totalAmount {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 800;
-  color: #c2410c;
+  color: var(--accent-dark);
 }
 
 .submitBookingBtn {
+  display: block;
   width: 100%;
-  background: #ea580c;
-  color: #ffffff;
+  text-align: center;
+  text-decoration: none;
+  background: var(--accent);
+  color: #fff;
   border: none;
-  padding: 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 14px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s;
+  box-shadow: 0 6px 16px rgba(234, 88, 12, 0.3);
+  transition: background 0.15s, transform 0.15s;
 }
 
 .submitBookingBtn:hover:not(:disabled) {
-  background: #c2410c;
+  background: var(--accent-dark);
+  transform: translateY(-1px);
 }
 
 .submitBookingBtn:disabled {
-  background: #e5e7eb;
-  color: #9ca3af;
+  background: #e2e8f0;
+  color: #94a3b8;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 .securityNote {
-  font-size: 11px;
-  color: #6b7280;
-  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 12px 0 0;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.5;
 }

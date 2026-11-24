@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styles from "./page.module.css";
+import { api } from "../utils/axiosClient";
+import { apiErrorMessage } from "../utils/apiError";
+import type { SeatMap } from "../trips/seats/SeatPage";
 
 // Import các kiểu dữ liệu
 import {
@@ -26,54 +29,53 @@ import BookingSidebarSummary from "./components/BookingSidebarSummary";
 function BookingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const trainParam = searchParams.get("train") || "SE1";
-  const seatsParam = searchParams.get("seats") || "1-02,1-06";
-  const tripIdParam = searchParams.get("tripId") || trainParam;
+  const tripIdParam = searchParams.get("tripId") || "";
+  const seatsParam = searchParams.get("seats") || "";
+  // Chặng khách tìm (ga lên/xuống), truyền tiếp qua từng bước đặt vé
+  const from = searchParams.get("from") || undefined;
+  const to = searchParams.get("to") || undefined;
+  const seg = from && to ? `&from=${from}&to=${to}` : "";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [trip, setTrip] = useState<Omit<SeatMap, "coaches"> | null>(null);
 
-  // Parse thông tin ghế từ query params hoặc dùng mặc định
-  const initialPassengers: PassengerForm[] = useMemo(() => {
-    const seatItems = seatsParam.split(",").filter(Boolean);
-    if (seatItems.length === 0) {
-      return [
-        {
-          id: "p-1",
-          seatLabel: "Toa 1 - Ghế 02",
-          coachNumber: "1",
-          seatNumber: "02",
-          seatType: "Ngồi mềm điều hòa",
-          basePrice: 850000,
-          fullName: "",
-          passengerType: "ADULT",
-          idCard: "",
-          hasInsurance: true,
-        },
-      ];
-    }
+  // State danh sách hành khách (mỗi hành khách = 1 ghế; id = UUID ghế)
+  const [passengers, setPassengers] = useState<PassengerForm[]>([]);
 
-    return seatItems.map((item, idx) => {
-      const parts = item.split("-");
-      const coach = parts[0] || "1";
-      const seat = parts[1] || `0${idx + 1}`;
-      return {
-        id: `p-${idx + 1}`,
-        seatLabel: `Toa ${coach} - Ghế ${seat}`,
-        coachNumber: coach,
-        seatNumber: seat,
-        seatType: coach === "1" ? "Ngồi mềm điều hòa" : "Khoang 4 nằm mềm",
-        basePrice: coach === "1" ? 850000 : 1250000,
-        fullName: "",
-        passengerType: "ADULT",
-        idCard: "",
-        hasInsurance: true,
-      };
-    });
-  }, [seatsParam]);
-
-  // State danh sách hành khách
-  const [passengers, setPassengers] = useState<PassengerForm[]>(initialPassengers);
+  // Lấy giá & nhãn ghế thật từ sơ đồ ghế của chuyến (không tin giá trên URL)
+  useEffect(() => {
+    const seatIds = seatsParam.split(",").filter(Boolean);
+    if (!tripIdParam || seatIds.length === 0) return;
+    api
+      .get<SeatMap>(`/trips/${tripIdParam}/seats`, { params: { from, to } })
+      .then(({ data }) => {
+        const found = data.coaches.flatMap((c) =>
+          c.seats.filter((s) => seatIds.includes(s.id)).map((s) => ({ c, s })),
+        );
+        if (found.length !== seatIds.length) {
+          setLoadError("Một số ghế không còn tồn tại trên chuyến này. Vui lòng chọn lại.");
+          return;
+        }
+        setTrip(data);
+        setPassengers(
+          found.map(({ c, s }) => ({
+            id: s.id,
+            seatLabel: `Toa ${c.coachNumber} - Ghế ${s.seatNumber}`,
+            coachNumber: String(c.coachNumber),
+            seatNumber: s.seatNumber,
+            seatType: c.coachName,
+            basePrice: s.price,
+            fullName: "",
+            passengerType: "ADULT",
+            idCard: "",
+            hasInsurance: true,
+          })),
+        );
+      })
+      .catch((e) => setLoadError(apiErrorMessage(e, "Không tải được thông tin ghế.")));
+  }, [tripIdParam, seatsParam, from, to]);
 
   // State người liên hệ (người đặt vé)
   const [contactInfo, setContactInfo] = useState<ContactInfo>({
@@ -147,19 +149,11 @@ function BookingContent() {
   // Tổng tiền cuối cùng
   const finalTotal = Math.max(0, totalTicketPrice + totalInsurance - appliedDiscount);
 
-  // Áp dụng voucher mẫu
+  // shortcut: backend chưa có API coupon nên không giảm giá ở client (tránh hiển thị sai số tiền thật); làm API coupon thì nối vào đây
   const handleApplyVoucher = (e: React.FormEvent) => {
     e.preventDefault();
-    if (voucherCode.trim().toUpperCase() === "LIONRAIL50") {
-      setAppliedDiscount(50000);
-      setDiscountMessage("Đã áp dụng mã giảm 50.000 đ thành công!");
-    } else if (voucherCode.trim().toUpperCase() === "XUAN2026") {
-      setAppliedDiscount(100000);
-      setDiscountMessage("Đã áp dụng mã giảm 100.000 đ Tết 2026!");
-    } else {
-      setAppliedDiscount(0);
-      setDiscountMessage("Mã giảm giá không hợp lệ hoặc đã hết hạn.");
-    }
+    setAppliedDiscount(0);
+    setDiscountMessage("Chức năng mã giảm giá đang được phát triển.");
   };
 
   // Xử lý gửi đơn đặt vé tới API Backend
@@ -178,7 +172,8 @@ function BookingContent() {
       return;
     }
 
-    // 2. Kiểm tra thông tin từng hành khách
+    // 2. Kiểm tra thông tin từng hành khách; mỗi CMND/CCCD chỉ được dùng cho một chỗ
+    const seenIds = new Map<string, string>();
     for (let i = 0; i < passengers.length; i++) {
       const p = passengers[i];
       if (!p.fullName.trim() || !p.idCard.trim()) {
@@ -187,23 +182,29 @@ function BookingContent() {
         );
         return;
       }
+      const idKey = p.idCard.replace(/\s/g, "").toUpperCase();
+      const firstSeat = seenIds.get(idKey);
+      if (firstSeat) {
+        setApiError(
+          `CMND/CCCD của hành khách tại ${p.seatLabel} trùng với hành khách tại ${firstSeat}. Mỗi hành khách phải có giấy tờ riêng.`
+        );
+        return;
+      }
+      seenIds.set(idKey, p.seatLabel);
     }
 
     setIsSubmitting(true);
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("token") || localStorage.getItem("access_token")
-          : null;
-
       const payload = {
         tripId: tripIdParam,
+        originStationId: from,
+        destinationStationId: to,
         contactName: contactInfo.fullName.trim(),
         contactPhone: contactInfo.phone.trim(),
         contactEmail: contactInfo.email.trim(),
         note: contactInfo.note?.trim() || undefined,
         passengers: passengers.map((p) => ({
-          seatId: `${p.coachNumber}-${p.seatNumber}`,
+          seatId: p.id,
           fullName: p.fullName.trim(),
           idNumber: p.idCard.trim(),
           passengerType: p.passengerType,
@@ -211,32 +212,33 @@ function BookingContent() {
         })),
       };
 
-      const res = await fetch("http://localhost:3001/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(payload),
-      });
+      // Token (nếu đã đăng nhập) được axiosClient tự gắn
+      const { data } = await api.post<{ bookingCode: string }>("/bookings", payload);
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(
-          data.message || "Không thể tạo đơn đặt chỗ. Vui lòng thử lại."
-        );
-      }
+      // Khách vãng lai cần SĐT để xem đơn ở trang thanh toán; giữ trong tab, không đưa lên URL
+      sessionStorage.setItem(`booking-phone:${data.bookingCode}`, payload.contactPhone);
 
       // Đặt chỗ thành công -> Chuyển sang màn hình thanh toán với Mã PNR thật từ database
-      router.push(
-        `/payment?pnr=${data.bookingCode}&method=${paymentMethod}&train=${trainParam}`
-      );
-    } catch (err: any) {
-      setApiError(err.message || "Lỗi kết nối máy chủ. Vui lòng thử lại sau.");
+      router.push(`/payment?pnr=${data.bookingCode}&method=${paymentMethod}`);
+    } catch (err) {
+      setApiError(apiErrorMessage(err, "Không thể tạo đơn đặt chỗ. Vui lòng thử lại."));
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (!tripIdParam || !seatsParam || loadError || passengers.length === 0) {
+    return (
+      <div role="status" className={styles.statusBox}>
+        {!tripIdParam || !seatsParam
+          ? "Chưa chọn chỗ ngồi."
+          : loadError || "Đang tải thông tin ghế..."}{" "}
+        {(!tripIdParam || !seatsParam || loadError) && (
+          <Link href={tripIdParam ? `/trips/seats?tripId=${tripIdParam}${seg}` : "/"}>Chọn lại chỗ</Link>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -244,7 +246,7 @@ function BookingContent() {
       <BookingProgressBar />
 
       {/* 2. BANNER ĐẾM NGƯỢC GIỮ CHỖ */}
-      <HoldSeatCountdown timeLeft="09:48" />
+      <HoldSeatCountdown />
 
       {/* 3. BỐ CỤC CHÍNH 2 CỘT */}
       <div className={styles.bookingGrid}>
@@ -296,28 +298,15 @@ function BookingContent() {
 
             {/* Thông báo lỗi nghiệp vụ từ API (ví dụ: ghế đã có người giữ chỗ) */}
             {apiError && (
-              <div
-                style={{
-                  backgroundColor: "#fef2f2",
-                  color: "#b91c1c",
-                  border: "1px solid #fecaca",
-                  borderRadius: "8px",
-                  padding: "12px 16px",
-                  marginTop: "14px",
-                  fontSize: "14px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                <span>⚠️</span>
+              <div role="alert" className={styles.errorBox}>
+                <span aria-hidden>⚠️</span>
                 <strong>{apiError}</strong>
               </div>
             )}
 
             <div className={styles.actionRow}>
               <Link
-                href={`/trips/seats?train=${trainParam}`}
+                href={`/trips/seats?tripId=${tripIdParam}${seg}`}
                 className={styles.backBtn}
               >
                 ← Quay lại chọn chỗ
@@ -328,10 +317,6 @@ function BookingContent() {
                 onClick={handleSubmitBooking}
                 disabled={!agreeTerms || isSubmitting}
                 className={styles.submitOrderBtn}
-                style={{
-                  cursor: !agreeTerms || isSubmitting ? "not-allowed" : "pointer",
-                  opacity: !agreeTerms || isSubmitting ? 0.7 : 1,
-                }}
               >
                 {isSubmitting
                   ? "Đang kiểm tra & giữ chỗ..."
@@ -345,7 +330,7 @@ function BookingContent() {
 
         {/* CỘT PHẢI: TÓM TẮT ĐƠN HÀNG */}
         <BookingSidebarSummary
-          trainCode={trainParam}
+          trip={trip}
           passengers={passengers}
           calculateSeatPrice={calculateSeatPrice}
           totalTicketPrice={totalTicketPrice}
@@ -371,7 +356,7 @@ export default function BookingPage() {
       {/* SUSPENSE BOUNDARY CHO SEARCH PARAMS */}
       <Suspense
         fallback={
-          <div style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
+          <div role="status" className={styles.statusBox}>
             Đang tải thông tin đặt vé...
           </div>
         }

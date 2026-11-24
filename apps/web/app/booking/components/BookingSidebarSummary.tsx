@@ -1,10 +1,11 @@
 "use client";
 
 import { PassengerForm, PassengerType } from "../types/booking.types";
+import type { SeatMap } from "../../trips/seats/SeatPage";
 import styles from "../page.module.css";
 
 interface BookingSidebarSummaryProps {
-  trainCode: string;
+  trip: Omit<SeatMap, "coaches"> | null;
   passengers: PassengerForm[];
   calculateSeatPrice: (base: number, type: PassengerType) => number;
   totalTicketPrice: number;
@@ -17,8 +18,16 @@ interface BookingSidebarSummaryProps {
   discountMessage: string;
 }
 
+const vnd = (n: number) => `${n.toLocaleString("vi-VN")} đ`;
+const TYPE_LABEL: Record<PassengerType, string> = {
+  ADULT: "Người lớn",
+  CHILD: "Trẻ em (−25%)",
+  STUDENT: "Sinh viên (−10%)",
+  SENIOR: "Cao tuổi (−15%)",
+};
+
 export default function BookingSidebarSummary({
-  trainCode,
+  trip,
   passengers,
   calculateSeatPrice,
   totalTicketPrice,
@@ -35,71 +44,55 @@ export default function BookingSidebarSummary({
       <div className={styles.sidebarCard}>
         <div className={styles.sidebarHeader}>
           <h3>Tóm tắt chuyến đi</h3>
-          <span className={styles.trainTag}>Tàu {trainCode}</span>
+          {trip && <span className={styles.trainTag}>Tàu {trip.trainCode}</span>}
         </div>
 
-        {/* Thông tin lộ trình */}
-        <div className={styles.itineraryBox}>
-          <div className={styles.itineraryRow}>
-            <div className={styles.stationTime}>06:00</div>
-            <div className={styles.timelineDot}></div>
-            <div className={styles.stationName}>
-              <strong>Hà Nội (HAN)</strong>
-              <span>15/01/2026</span>
-            </div>
-          </div>
-
-          <div className={styles.itineraryDuration}>
-            <div className={styles.durationLine}></div>
-            <span className={styles.durationLabel}>37 giờ 30 phút</span>
-          </div>
-
-          <div className={styles.itineraryRow}>
-            <div className={styles.stationTime}>19:30</div>
-            <div className={styles.timelineDotDest}></div>
-            <div className={styles.stationName}>
-              <strong>Sài Gòn (SGO)</strong>
-              <span>16/01/2026</span>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.divider}></div>
-
-        {/* Chi tiết từng vé */}
-        <div className={styles.ticketItemsList}>
-          <div className={styles.ticketSectionTitle}>
-            Vé đã chọn ({passengers.length})
-          </div>
-          {passengers.map((p) => {
-            const price = calculateSeatPrice(p.basePrice, p.passengerType);
-            return (
-              <div key={p.id} className={styles.ticketItem}>
-                <div className={styles.ticketItemLeft}>
-                  <span className={styles.ticketSeat}>{p.seatLabel}</span>
-                  <span className={styles.ticketType}>
-                    {p.passengerType === "CHILD"
-                      ? "Trẻ em (-25%)"
-                      : p.passengerType === "STUDENT"
-                      ? "Sinh viên (-10%)"
-                      : p.passengerType === "SENIOR"
-                      ? "Cao tuổi (-15%)"
-                      : "Người lớn"}
-                  </span>
-                </div>
-                <div className={styles.ticketItemPrice}>
-                  {price.toLocaleString("vi-VN")} đ
-                </div>
+        {trip && (
+          <div className={styles.itineraryBox}>
+            <div className={styles.itineraryRow}>
+              <span className={styles.timelineDot} aria-hidden />
+              <div className={styles.stationName}>
+                <span>Ga đi · {trip.departureDate}</span>
+                <strong>{trip.originStation}</strong>
               </div>
-            );
-          })}
+              <span className={styles.stationTime}>{trip.departureTime}</span>
+            </div>
+            <div className={styles.itineraryDuration}>
+              <span className={styles.durationLine} aria-hidden />
+              <span className={styles.durationLabel}>Thời gian chạy {trip.duration}</span>
+            </div>
+            <div className={styles.itineraryRow}>
+              <span className={styles.timelineDotDest} aria-hidden />
+              <div className={styles.stationName}>
+                <span>Ga đến</span>
+                <strong>{trip.destinationStation}</strong>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className={styles.ticketItemsList}>
+          <div className={styles.ticketSectionTitle}>Vé đã chọn ({passengers.length})</div>
+          {passengers.map((p) => (
+            <div key={p.id} className={styles.ticketItem}>
+              <div className={styles.ticketItemLeft}>
+                <span className={styles.ticketSeat}>
+                  Toa {p.coachNumber} · Ghế {p.seatNumber}
+                </span>
+                <span className={styles.ticketType}>
+                  {p.fullName || "Chưa nhập tên"} · {TYPE_LABEL[p.passengerType]}
+                </span>
+              </div>
+              <div className={styles.ticketItemPrice}>{vnd(calculateSeatPrice(p.basePrice, p.passengerType))}</div>
+            </div>
+          ))}
         </div>
 
-        {/* Nhập mã Voucher */}
         <form onSubmit={onApplyVoucher} className={styles.voucherBox}>
           <input
             type="text"
-            placeholder="Nhập mã ưu đãi (ví dụ: LIONRAIL50)"
+            aria-label="Mã ưu đãi"
+            placeholder="Mã ưu đãi"
             className={styles.voucherInput}
             value={voucherCode}
             onChange={(e) => onVoucherCodeChange(e.target.value)}
@@ -109,59 +102,39 @@ export default function BookingSidebarSummary({
           </button>
         </form>
         {discountMessage && (
-          <p
-            className={
-              appliedDiscount > 0
-                ? styles.voucherSuccess
-                : styles.voucherError
-            }
-          >
-            {discountMessage}
-          </p>
+          <p className={appliedDiscount > 0 ? styles.voucherSuccess : styles.voucherError}>{discountMessage}</p>
         )}
 
-        <div className={styles.divider}></div>
-
-        {/* Bảng chi tiết tiền */}
         <div className={styles.feeBreakdown}>
           <div className={styles.feeRow}>
-            <span>Tổng tiền vé:</span>
-            <span>{totalTicketPrice.toLocaleString("vi-VN")} đ</span>
+            <span>Tiền vé ({passengers.length})</span>
+            <span>{vnd(totalTicketPrice)}</span>
           </div>
-
           <div className={styles.feeRow}>
-            <span>Phí bảo hiểm hành khách:</span>
-            <span>{totalInsurance.toLocaleString("vi-VN")} đ</span>
+            <span>Bảo hiểm ({passengers.filter((p) => p.hasInsurance).length})</span>
+            <span>{vnd(totalInsurance)}</span>
           </div>
-
           {appliedDiscount > 0 && (
             <div className={`${styles.feeRow} ${styles.discountRow}`}>
-              <span>Giảm giá khuyến mãi:</span>
-              <span>-{appliedDiscount.toLocaleString("vi-VN")} đ</span>
+              <span>Giảm giá</span>
+              <span>−{vnd(appliedDiscount)}</span>
             </div>
           )}
-
           <div className={styles.totalPaymentRow}>
-            <span className={styles.totalPaymentLabel}>
-              Tổng tiền thanh toán:
-            </span>
-            <span className={styles.totalPaymentValue}>
-              {finalTotal.toLocaleString("vi-VN")} đ
-            </span>
+            <span className={styles.totalPaymentLabel}>Tổng thanh toán</span>
+            <span className={styles.totalPaymentValue}>{vnd(finalTotal)}</span>
           </div>
         </div>
 
-        {/* Ghi chú an toàn */}
-        <div className={styles.trustBox}>
-          <div className={styles.trustItem}>
-            <span>🔒</span> Giao dịch bảo mật chuẩn SSL 256-bit
-          </div>
-          <div className={styles.trustItem}>
-            <span>⚡</span> Xuất vé điện tử ngay khi thanh toán thành công
-          </div>
-        </div>
+        <ul className={styles.trustBox}>
+          <li className={styles.trustItem}>
+            <span aria-hidden>🔒</span> Giao dịch được mã hóa bảo mật
+          </li>
+          <li className={styles.trustItem}>
+            <span aria-hidden>⚡</span> Xuất vé điện tử ngay khi thanh toán thành công
+          </li>
+        </ul>
       </div>
     </aside>
   );
 }
-

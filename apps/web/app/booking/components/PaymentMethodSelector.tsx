@@ -8,143 +8,80 @@ interface PaymentMethodSelectorProps {
   onPaymentMethodChange: (method: PaymentMethodType) => void;
 }
 
-export default function PaymentMethodSelector({
-  paymentMethod,
-  onPaymentMethodChange,
-}: PaymentMethodSelectorProps) {
+const METHODS: { value: PaymentMethodType; icon: string; title: string; desc: string; recommended?: boolean }[] = [
+  {
+    value: "VIETQR",
+    icon: "📱",
+    title: "Quét mã QR ngân hàng",
+    desc: "VietQR / Napas247 — dùng app ngân hàng hoặc ví bất kỳ, xác nhận tức thì 24/7.",
+    recommended: true,
+  },
+  {
+    value: "VNPAY",
+    icon: "💳",
+    title: "Thẻ ATM nội địa (VNPAY)",
+    desc: "Hơn 40 ngân hàng Việt Nam có đăng ký Internet Banking.",
+  },
+  {
+    value: "VISA",
+    icon: "🌐",
+    title: "Thẻ quốc tế",
+    desc: "Visa, MasterCard, JCB qua cổng thanh toán bảo mật.",
+  },
+  {
+    value: "STATION",
+    icon: "🏢",
+    title: "Trả tại quầy vé ga",
+    desc: "Đến quầy vé tại ga để nộp tiền và nhận vé trước hạn giữ chỗ.",
+  },
+];
+
+export default function PaymentMethodSelector({ paymentMethod, onPaymentMethodChange }: PaymentMethodSelectorProps) {
   return (
     <section className={styles.cardSection}>
       <div className={styles.cardHeader}>
         <div className={styles.cardHeaderTitle}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#1d4ed8"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-            <line x1="1" y1="10" x2="23" y2="10"></line>
-          </svg>
-          <h2>Phương thức thanh toán</h2>
+          <span className={styles.cardIcon} aria-hidden>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+              <line x1="1" y1="10" x2="23" y2="10" />
+            </svg>
+          </span>
+          <div>
+            <h2>Phương thức thanh toán</h2>
+            <p className={styles.cardHeaderSub}>Bạn sẽ thanh toán ở bước tiếp theo</p>
+          </div>
         </div>
       </div>
 
       <div className={styles.cardBody}>
-        <div className={styles.paymentMethodsList}>
-          {/* Cách 1: VietQR */}
-          <label
-            className={`${styles.paymentMethodItem} ${
-              paymentMethod === "VIETQR" ? styles.paymentSelected : ""
-            }`}
-          >
-            <input
-              type="radio"
-              name="payment"
-              value="VIETQR"
-              checked={paymentMethod === "VIETQR"}
-              onChange={(e) =>
-                onPaymentMethodChange(e.target.value as PaymentMethodType)
-              }
-            />
-            <div className={styles.paymentIcon}>📱</div>
-            <div className={styles.paymentDetails}>
-              <div className={styles.paymentTitle}>
-                Quét mã QR Ngân hàng (VietQR / Napas247)
-                <span className={styles.recommendedBadge}>Khuyên dùng</span>
-              </div>
-              <p className={styles.paymentDesc}>
-                Dùng ứng dụng ngân hàng hoặc ví điện tử bất kỳ để quét mã QR.
-                Xác nhận thanh toán tức thì 24/7.
-              </p>
-            </div>
-          </label>
-
-          {/* Cách 2: VNPAY / ATM nội địa */}
-          <label
-            className={`${styles.paymentMethodItem} ${
-              paymentMethod === "VNPAY" ? styles.paymentSelected : ""
-            }`}
-          >
-            <input
-              type="radio"
-              name="payment"
-              value="VNPAY"
-              checked={paymentMethod === "VNPAY"}
-              onChange={(e) =>
-                onPaymentMethodChange(e.target.value as PaymentMethodType)
-              }
-            />
-            <div className={styles.paymentIcon}>💳</div>
-            <div className={styles.paymentDetails}>
-              <div className={styles.paymentTitle}>
-                Thẻ ATM / Tài khoản ngân hàng nội địa (VNPAY-QR)
-              </div>
-              <p className={styles.paymentDesc}>
-                Hỗ trợ hơn 40 ngân hàng tại Việt Nam có đăng ký Internet
-                Banking.
-              </p>
-            </div>
-          </label>
-
-          {/* Cách 3: Thẻ quốc tế */}
-          <label
-            className={`${styles.paymentMethodItem} ${
-              paymentMethod === "VISA" ? styles.paymentSelected : ""
-            }`}
-          >
-            <input
-              type="radio"
-              name="payment"
-              value="VISA"
-              checked={paymentMethod === "VISA"}
-              onChange={(e) =>
-                onPaymentMethodChange(e.target.value as PaymentMethodType)
-              }
-            />
-            <div className={styles.paymentIcon}>🌐</div>
-            <div className={styles.paymentDetails}>
-              <div className={styles.paymentTitle}>
-                Thẻ quốc tế (Visa, MasterCard, JCB)
-              </div>
-              <p className={styles.paymentDesc}>
-                Thanh toán an toàn qua cổng thẻ bảo mật tiêu chuẩn quốc tế.
-              </p>
-            </div>
-          </label>
-
-          {/* Cách 4: Thanh toán tại ga */}
-          <label
-            className={`${styles.paymentMethodItem} ${
-              paymentMethod === "STATION" ? styles.paymentSelected : ""
-            }`}
-          >
-            <input
-              type="radio"
-              name="payment"
-              value="STATION"
-              checked={paymentMethod === "STATION"}
-              onChange={(e) =>
-                onPaymentMethodChange(e.target.value as PaymentMethodType)
-              }
-            />
-            <div className={styles.paymentIcon}>🏢</div>
-            <div className={styles.paymentDetails}>
-              <div className={styles.paymentTitle}>
-                Thanh toán sau tại quầy vé Ga tàu
-              </div>
-              <p className={styles.paymentDesc}>
-                Giữ chỗ trong 12 giờ. Bạn cần đến trực tiếp quầy vé tại ga để
-                nộp tiền và nhận vé trước hạn.
-              </p>
-            </div>
-          </label>
+        <div className={styles.paymentMethodsList} role="radiogroup" aria-label="Phương thức thanh toán">
+          {METHODS.map((m) => (
+            <label
+              key={m.value}
+              className={`${styles.paymentMethodItem} ${paymentMethod === m.value ? styles.paymentSelected : ""}`}
+            >
+              <input
+                type="radio"
+                name="payment"
+                value={m.value}
+                checked={paymentMethod === m.value}
+                onChange={() => onPaymentMethodChange(m.value)}
+              />
+              <span className={styles.paymentIcon} aria-hidden>
+                {m.icon}
+              </span>
+              <span className={styles.paymentDetails}>
+                <span className={styles.paymentTitle}>
+                  {m.title}
+                  {m.recommended && <span className={styles.recommendedBadge}>Khuyên dùng</span>}
+                </span>
+                <span className={styles.paymentDesc}>{m.desc}</span>
+              </span>
+            </label>
+          ))}
         </div>
       </div>
     </section>
   );
 }
-

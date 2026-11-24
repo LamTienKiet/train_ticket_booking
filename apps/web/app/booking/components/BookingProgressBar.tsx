@@ -2,32 +2,22 @@
 
 import styles from "../page.module.css";
 
+const STEPS = ["Chọn chuyến đi", "Chọn chỗ ngồi", "Thông tin hành khách", "Thanh toán & Nhận vé"];
+const CURRENT = 2;
+
 export default function BookingProgressBar() {
   return (
-    <section className={styles.progressSection}>
-      <div className={styles.stepItemDone}>
-        <div className={styles.stepCircle}>✓</div>
-        <span className={styles.stepText}>1. Chọn chuyến đi</span>
-      </div>
-      <div className={styles.stepLineDone}></div>
-
-      <div className={styles.stepItemDone}>
-        <div className={styles.stepCircle}>✓</div>
-        <span className={styles.stepText}>2. Chọn chỗ ngồi</span>
-      </div>
-      <div className={styles.stepLineActive}></div>
-
-      <div className={styles.stepItemActive}>
-        <div className={styles.stepCircleActive}>3</div>
-        <span className={styles.stepTextActive}>3. Thông tin hành khách</span>
-      </div>
-      <div className={styles.stepLine}></div>
-
-      <div className={styles.stepItem}>
-        <div className={styles.stepCircle}>4</div>
-        <span className={styles.stepText}>4. Thanh toán & Nhận vé</span>
-      </div>
-    </section>
+    <ol className={styles.progressSection} aria-label="Các bước đặt vé">
+      {STEPS.map((label, i) => (
+        <li
+          key={label}
+          className={`${styles.step} ${i < CURRENT ? styles.stepDone : ""} ${i === CURRENT ? styles.stepActive : ""}`}
+          aria-current={i === CURRENT ? "step" : undefined}
+        >
+          <span className={styles.stepCircle}>{i < CURRENT ? "✓" : i + 1}</span>
+          <span className={styles.stepText}>{label}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
-
