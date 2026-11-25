@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AdminModule } from './mod/admin/admin.module';
 import { AuthModule } from './mod/auth/auth.module';
 import { BookingModule } from './mod/booking/booking.module';
 import { FareModule } from './mod/fare/fare.module';
@@ -34,6 +35,7 @@ import { PrismaModule } from './mod/prisma/prisma.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
 
     // Feature modules
+    AdminModule,
     AuthModule,
     BookingModule,
     FareModule,
