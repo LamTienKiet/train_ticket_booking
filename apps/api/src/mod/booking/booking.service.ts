@@ -9,6 +9,7 @@ import {
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { QueryAdminBookingDto } from './dto/query-admin-booking.dto';
 import {
   BookingStatus,
   BookingSeatStatus,
@@ -512,6 +513,55 @@ export class BookingService {
   /**
    * Lấy danh sách vé / đơn hàng của user đang đăng nhập
    */
+  /** Danh sách đơn cho admin: lọc trạng thái, tìm theo mã đơn / SĐT / email */
+  async findAllAdmin(query: QueryAdminBookingDto) {
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 20, 100);
+    const search = query.search?.trim();
+    const where: Prisma.BookingWhereInput = {
+      ...(query.status && { status: query.status }),
+      ...(search && {
+        OR: [
+          { bookingCode: { contains: search } },
+          { contactPhone: { contains: search } },
+          { contactEmail: { contains: search } },
+        ],
+      }),
+    };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.booking.findMany({
+        where,
+        select: {
+          bookingCode: true,
+          status: true,
+          contactName: true,
+          contactPhone: true,
+          contactEmail: true,
+          totalAmount: true,
+          createdAt: true,
+          trip: { select: { tripCode: true, departureTime: true, route: { select: { name: true } } } },
+          _count: { select: { bookingSeats: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
+
+    return {
+      items: rows.map(({ _count, totalAmount, ...b }) => ({
+        ...b,
+        totalAmount: Number(totalAmount),
+        seatCount: _count.bookingSeats,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
   async findMyBookings(userId: string) {
     // Cron chạy mỗi phút; gọi thêm ở đây để user không thấy đơn quá hạn trong khoảng chờ cron
     await this.expireStaleBookings(userId);

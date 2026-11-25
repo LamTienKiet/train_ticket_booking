@@ -10,6 +10,9 @@ import {
 } from '@nestjs/common';
 import { BookingService, JwtUser } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { QueryAdminBookingDto } from './dto/query-admin-booking.dto';
+import { Role } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -49,6 +52,13 @@ export class BookingController {
     @Query('phone') phone: string,
   ) {
     return this.bookingService.lookupTicket(bookingCode, phone);
+  }
+
+  /** Danh sách đơn cho admin (khai báo trước :bookingCode) */
+  @Roles(Role.ADMIN)
+  @Get('admin')
+  findAllAdmin(@Query() query: QueryAdminBookingDto) {
+    return this.bookingService.findAllAdmin(query);
   }
 
   /**
