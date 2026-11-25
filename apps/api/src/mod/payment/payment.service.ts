@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketService } from '../ticket/ticket.service';
 import { ConfirmPaymentDto } from './dto/confirm-payment.dto';
+import { assertBookingAccess, JwtUser } from '../booking/booking.service';
 import {
   BookingStatus,
   BookingSeatStatus,
@@ -26,7 +27,7 @@ export class PaymentService {
   /**
    * Xác nhận thanh toán (Mock / Demo VietQR / Thẻ) và tự động xuất vé điện tử kèm QR
    */
-  async confirmPayment(dto: ConfirmPaymentDto) {
+  async confirmPayment(dto: ConfirmPaymentDto, user?: JwtUser | null) {
     // Endpoint này là thanh toán GIẢ (không có cổng thanh toán xác thực).
     // shortcut: chỉ dùng cho dev/demo; production cần IPN/webhook có chữ ký từ VNPay/Stripe.
     if (this.config.get<string>('PAYMENT_MOCK_ENABLED') !== 'true') {
@@ -38,6 +39,7 @@ export class PaymentService {
       include: {
         payment: true,
         bookingSeats: true,
+        passengers: { select: { phone: true } },
       },
     });
 
@@ -47,6 +49,8 @@ export class PaymentService {
       );
     }
 
+    assertBookingAccess(booking, user, dto.phone);
+
     // Nếu đã thanh toán thành công trước đó -> trả về thông tin vé luôn
     if (booking.status === BookingStatus.CONFIRMED) {
       return this.prisma.booking.findUnique({
@@ -54,6 +58,7 @@ export class PaymentService {
         include: {
           trip: {
             include: {
+              tripStations: { orderBy: { stopOrder: 'asc' } },
               train: true,
               route: {
                 include: {
@@ -162,6 +167,7 @@ export class PaymentService {
       include: {
         trip: {
           include: {
+            tripStations: { orderBy: { stopOrder: 'asc' } },
             train: true,
             route: {
               include: {

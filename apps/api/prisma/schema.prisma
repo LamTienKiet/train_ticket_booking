@@ -221,6 +221,8 @@ model RouteStation {
   stopOrder              Int    @map("stop_order")
   arrivalOffsetMinutes   Int    @map("arrival_offset_minutes")
   departureOffsetMinutes Int    @map("departure_offset_minutes")
+  // Km tính từ ga đầu tuyến, dùng để tính giá theo chặng
+  distanceFromOriginKm   Decimal? @map("distance_from_origin_km") @db.Decimal(8, 2)
 
   route   Route   @relation(fields: [routeId], references: [id], onDelete: Cascade)
   station Station @relation(fields: [stationId], references: [id])

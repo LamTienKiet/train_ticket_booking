@@ -21,6 +21,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { randomInt } from 'crypto';
+import { loadTripSegment, overlapsSegment, segmentPrice } from '../trip/segment';
 
 // Bỏ 0/O/1/I để khách đọc mã không nhầm
 const CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -34,6 +35,20 @@ export interface JwtUser {
 }
 
 const digitsOnly = (v?: string | null) => (v ?? '').replace(/\D/g, '');
+
+/** Chuẩn hóa số giấy tờ để so trùng: bỏ khoảng trắng, không phân biệt hoa thường */
+export const normalizeIdNumber = (v: string) => v.replace(/\s/g, '').toUpperCase();
+
+/** Trả về số giấy tờ bị nhập lặp trong cùng một đơn (mỗi người chỉ được một chỗ), không trùng thì undefined */
+export function findDuplicateIdNumber(passengers: { idNumber: string }[]) {
+  const seen = new Set<string>();
+  for (const p of passengers) {
+    const id = normalizeIdNumber(p.idNumber);
+    if (seen.has(id)) return id;
+    seen.add(id);
+  }
+  return undefined;
+}
 
 /**
  * Được xem/hủy booking khi: là STAFF/ADMIN, là chủ booking, hoặc nhập đúng SĐT liên hệ/hành khách.
@@ -166,9 +181,24 @@ export class BookingService {
     const destinationStationId =
       dto.destinationStationId || trip.route.destinationStationId;
 
+    // Chặng do client gửi phải là 2 ga của chuyến này, đúng chiều chạy (sai => 400)
+    const seg = await loadTripSegment(
+      this.prisma,
+      trip,
+      dto.originStationId,
+      dto.destinationStationId,
+    );
+
     if (!dto.passengers || dto.passengers.length === 0) {
       throw new BadRequestException(
         'Danh sách hành khách không được để trống.',
+      );
+    }
+
+    const duplicateId = findDuplicateIdNumber(dto.passengers);
+    if (duplicateId) {
+      throw new BadRequestException(
+        `CMND/CCCD ${duplicateId} bị nhập cho nhiều hành khách. Mỗi hành khách phải có giấy tờ riêng.`,
       );
     }
 
@@ -212,8 +242,6 @@ export class BookingService {
           const seatIdx = parseInt(seatNum, 10) - 1;
           if (seatIdx >= 0 && seatIdx < coachSeats.length) {
             foundSeat = coachSeats[seatIdx];
-          } else if (coachSeats.length > 0) {
-            foundSeat = coachSeats[0];
           }
         }
       }
@@ -261,10 +289,10 @@ export class BookingService {
         },
       });
 
-      if (conflictingSeats.length > 0) {
-        const conflictNumbers = conflictingSeats
-          .map((cs) => cs.seat.seatNumber)
-          .join(', ');
+      // Ghế chỉ trùng khi chặng đã bán chồng lên chặng đang đặt (khách trước xuống ga nào thì từ ga đó ghế trống)
+      const overlapping = conflictingSeats.filter((cs) => overlapsSegment(seg, cs));
+      if (overlapping.length > 0) {
+        const conflictNumbers = [...new Set(overlapping.map((cs) => cs.seat.seatNumber))].join(', ');
         throw new ConflictException(
           `Ghế [${conflictNumbers}] đã có người giữ chỗ hoặc đã thanh toán. Vui lòng chọn ghế khác!`,
         );
@@ -296,9 +324,13 @@ export class BookingService {
         const fareRule = fareRules.find(
           (fr) => fr.seatTypeId === seat.seatTypeId,
         );
-        const basePrice = fareRule
-          ? Number(fareRule.basePrice)
-          : Number(seat.seatType.priceMultiplier) * 100000;
+        // Bảng giá là giá cả tuyến; khách trả theo km chặng mình đi
+        const basePrice = segmentPrice(
+          fareRule
+            ? Number(fareRule.basePrice)
+            : Number(seat.seatType.priceMultiplier) * 100000,
+          seg.priceRatio,
+        );
 
         // Tỷ lệ giảm giá theo đối tượng hành khách
         let discountPercent = 0;
@@ -438,16 +470,13 @@ export class BookingService {
       include: {
         trip: {
           include: {
+            tripStations: { orderBy: { stopOrder: 'asc' } },
             train: true,
             route: {
               include: {
                 originStation: true,
                 destinationStation: true,
               },
-            },
-            tripStations: {
-              include: { station: true },
-              orderBy: { stopOrder: 'asc' },
             },
           },
         },
@@ -492,6 +521,7 @@ export class BookingService {
       include: {
         trip: {
           include: {
+            tripStations: { orderBy: { stopOrder: 'asc' } },
             train: true,
             route: {
               include: {
@@ -642,6 +672,7 @@ export class BookingService {
       include: {
         trip: {
           include: {
+            tripStations: { orderBy: { stopOrder: 'asc' } },
             train: true,
             route: {
               include: {

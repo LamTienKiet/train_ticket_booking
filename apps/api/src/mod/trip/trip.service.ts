@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SearchTripDto } from './dto/search-trip.dto';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
+import { loadTripSegment, overlapsSegment, segmentPrice, TripSegment } from './segment';
 
 @Injectable()
 export class TripService {
@@ -50,7 +51,16 @@ export class TripService {
     const trips = await this.prisma.trip.findMany({
       where: {
         routeId: { in: validRouteIds },
-        departureTime: { gte: startUTC, lte: endUTC },
+        // Ngày đi tính theo giờ tàu rời ga khách lên, không phải ga đầu tuyến; bỏ chuyến đã chạy
+        tripStations: {
+          some: {
+            stationId: originStationId,
+            departureTime: {
+              gte: new Date(Math.max(startUTC.getTime(), Date.now())),
+              lte: endUTC,
+            },
+          },
+        },
         status: { in: ['SCHEDULED', 'BOARDING'] },
       },
       include: {
@@ -117,6 +127,7 @@ export class TripService {
     originStationId: string,
     destinationStationId: string,
   ) {
+    const seg = await loadTripSegment(this.prisma, trip, originStationId, destinationStationId);
     const [fareRules, availableSeatsByType] = await Promise.all([
       this.prisma.fareRule.findMany({
         where: { routeId: trip.routeId },
@@ -125,7 +136,7 @@ export class TripService {
           passengerFares: true,
         },
       }),
-      this.getAvailableSeatsByType(trip.id, trip.trainId),
+      this.getAvailableSeatsByType(trip.id, trip.trainId, seg),
     ]);
 
     const originTripStation = trip.tripStations.find(
@@ -142,16 +153,16 @@ export class TripService {
 
     const faresByType = fareRules.map((fr) => {
       const available = availableSeatsByType.get(fr.seatTypeId) ?? 0;
+      const price = segmentPrice(Number(fr.basePrice), seg.priceRatio);
       return {
         seatTypeId: fr.seatTypeId,
         seatTypeCode: fr.seatType.code,
         seatTypeName: fr.seatType.name,
-        basePrice: Number(fr.basePrice),
+        basePrice: price,
         passengerFares: fr.passengerFares.map((pf) => ({
           passengerType: pf.passengerType,
           discountPercent: Number(pf.discountPercent),
-          finalPrice:
-            Number(fr.basePrice) * (1 - Number(pf.discountPercent) / 100),
+          finalPrice: price * (1 - Number(pf.discountPercent) / 100),
         })),
         availableSeats: available,
       };
@@ -174,7 +185,7 @@ export class TripService {
       originStation: originTripStation
         ? {
           ...originTripStation.station,
-          scheduledTime: originTripStation.arrivalTime ?? trip.departureTime,
+          scheduledTime: originTripStation.departureTime ?? trip.departureTime,
         }
         : null,
       destinationStation: destinationTripStation
@@ -192,6 +203,7 @@ export class TripService {
   private async getAvailableSeatsByType(
     tripId: string,
     trainId: string,
+    seg: TripSegment,
   ): Promise<Map<string, number>> {
     const totalSeats = await this.prisma.seat.groupBy({
       by: ['seatTypeId'],
@@ -200,8 +212,7 @@ export class TripService {
     });
 
     const now = new Date();
-    const bookedSeats = await this.prisma.bookingSeat.groupBy({
-      by: ['seatId'],
+    const bookedSeats = await this.prisma.bookingSeat.findMany({
       where: {
         booking: {
           tripId,
@@ -215,10 +226,13 @@ export class TripService {
         },
         status: { in: ['HELD', 'CONFIRMED'] },
       },
-      _count: { id: true },
+      select: { seatId: true, originStationId: true, destinationStationId: true },
     });
 
-    const bookedSeatIds = bookedSeats.map((b) => b.seatId);
+    // Ghế chỉ bận nếu chặng đã bán chồng lên chặng đang xem
+    const bookedSeatIds = [
+      ...new Set(bookedSeats.filter((b) => overlapsSegment(seg, b)).map((b) => b.seatId)),
+    ];
     const bookedSeatDetails =
       bookedSeatIds.length > 0
         ? await this.prisma.seat.findMany({
@@ -320,7 +334,7 @@ export class TripService {
           passengerFares: true,
         },
       }),
-      this.getAvailableSeatsByType(trip.id, trip.trainId),
+      this.getAvailableSeatsByType(trip.id, trip.trainId, await loadTripSegment(this.prisma, trip)),
     ]);
 
     const durationMs =
@@ -423,7 +437,7 @@ export class TripService {
   // FIND SEATS for a trip (seat map)
   // ──────────────────────────────────────────────
 
-  async findSeats(tripId: string) {
+  async findSeats(tripId: string, from?: string, to?: string) {
       const trip = await this.prisma.trip.findFirst({
         where: {
           OR: [
@@ -440,6 +454,7 @@ export class TripService {
               destinationStation: true,
             },
           },
+          tripStations: { include: { station: true }, orderBy: { stopOrder: 'asc' } },
         },
       });
 
@@ -447,12 +462,20 @@ export class TripService {
         throw new NotFoundException(`Không tìm thấy chuyến tàu với mã: ${tripId}`);
       }
 
+      // Chặng khách đi (mặc định cả tuyến): tên ga, giờ, ghế trống và giá đều theo chặng
+      const seg = await loadTripSegment(this.prisma, trip, from, to);
+      const stops = trip.tripStations;
+      const origin = stops.find((s) => s.stopOrder === seg.fromOrder);
+      const dest = stops.find((s) => s.stopOrder === seg.toOrder);
+      const dep = origin?.departureTime ?? trip.departureTime;
+      const arr = dest?.arrivalTime ?? trip.arrivalTime;
+
     const fareRules = await this.prisma.fareRule.findMany({
         where: { routeId: trip.routeId },
         include: { seatType: { select: { id: true, code: true, name: true } } },
       });
       const fareMap = new Map(
-        fareRules.map((fr) => [fr.seatTypeId, Number(fr.basePrice)]),
+        fareRules.map((fr) => [fr.seatTypeId, segmentPrice(Number(fr.basePrice), seg.priceRatio)]),
       );
 
       const now = new Date();
@@ -470,9 +493,11 @@ export class TripService {
           },
           status: { in: ['HELD', 'CONFIRMED'] },
         },
-        select: { seatId: true },
+        select: { seatId: true, originStationId: true, destinationStationId: true },
       });
-      const bookedSeatIds = new Set(bookedSeats.map((b) => b.seatId));
+      const bookedSeatIds = new Set(
+        bookedSeats.filter((b) => overlapsSegment(seg, b)).map((b) => b.seatId),
+      );
 
       const coaches = await this.prisma.coach.findMany({
         where: {
@@ -490,21 +515,24 @@ export class TripService {
         orderBy: { coachNumber: 'asc' },
       });
 
-      const dep = trip.departureTime ? new Date(trip.departureTime) : null;
-      const arr = trip.arrivalTime ? new Date(trip.arrivalTime) : null;
+      const vn = { timeZone: 'Asia/Ho_Chi_Minh' } as const;
+      const mins = Math.round((arr.getTime() - dep.getTime()) / 60000);
 
       return {
         tripId: trip.id,
         tripCode: trip.tripCode,
         trainCode: trip.train.code,
         trainName: trip.train.name,
-        originStation: trip.route.originStation.name,
-        destinationStation: trip.route.destinationStation.name,
-        departureTime: dep
-          ? dep.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-          : '06:00',
-        departureDate: dep ? dep.toLocaleDateString('vi-VN') : '15/01/2026',
-        duration: '31h 15m',
+        routeName: trip.route.name,
+        originStation: origin?.station.name ?? trip.route.originStation.name,
+        destinationStation: dest?.station.name ?? trip.route.destinationStation.name,
+        departureTime: dep.toLocaleTimeString('vi-VN', {
+          ...vn,
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        departureDate: dep.toLocaleDateString('vi-VN', vn),
+        duration: `${Math.floor(mins / 60)}h ${mins % 60}m`,
         coaches: coaches.map((coach) => ({
           id: coach.id,
           coachNumber: coach.coachNumber,
@@ -552,131 +580,47 @@ export class TripService {
       });
     }
 
+  /** Danh sách chuyến sắp chạy (cả tuyến), cùng dạng dữ liệu với search để web dùng chung */
   async findAll() {
-        const trips = await this.prisma.trip.findMany({
-          include: {
-            route: {
-              include: {
-                originStation: true,
-                destinationStation: true,
-              },
-            },
-            train: {
-              include: {
-                coaches: {
-                  include: {
-                    _count: { select: { seats: true } },
-                  },
-                },
-              },
-            },
-            tripStations: {
-              include: { station: true },
-              orderBy: { stopOrder: 'asc' },
-            },
+    const trips = await this.prisma.trip.findMany({
+      where: {
+        departureTime: { gt: new Date() },
+        status: { in: ['SCHEDULED', 'BOARDING'] },
+      },
+      include: {
+        route: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            distanceKm: true,
+            originStationId: true,
+            destinationStationId: true,
           },
-          orderBy: { departureTime: 'asc' },
-        });
+        },
+        train: { select: { id: true, code: true, name: true } },
+        tripStations: {
+          include: {
+            station: { select: { id: true, code: true, name: true, city: true } },
+          },
+          orderBy: { stopOrder: 'asc' },
+        },
+      },
+      orderBy: { departureTime: 'asc' },
+      // shortcut: không phân trang, đủ cho vài chục chuyến; nhiều hơn thì thêm page/limit
+      take: 50,
+    });
 
-        const now = new Date();
-        return Promise.all(
-          trips.map(async (trip) => {
-            // Biểu giá vé
-            const fareRules = await this.prisma.fareRule.findMany({
-              where: { routeId: trip.routeId },
-            });
-            const minPrice =
-              fareRules.length > 0
-                ? Math.min(...fareRules.map((f) => Number(f.basePrice)))
-                : 680000;
-
-            // Số ghế đã đặt
-            const bookedCount = await this.prisma.bookingSeat.count({
-              where: {
-                booking: {
-                  tripId: trip.id,
-                  OR: [
-                    { status: 'CONFIRMED' },
-                    { status: 'PENDING', expiresAt: { gt: now } },
-                  ],
-                },
-                status: { in: ['HELD', 'CONFIRMED'] },
-              },
-            });
-
-            const totalSeats = trip.train.coaches.reduce(
-              (sum, c) => sum + c._count.seats,
-              0,
-            );
-            const availableSeats = Math.max(0, totalSeats - bookedCount);
-
-            const durationMs =
-              new Date(trip.arrivalTime).getTime() -
-              new Date(trip.departureTime).getTime();
-            const durationHours = Math.floor(durationMs / 3600000);
-            const durationMins = Math.round((durationMs % 3600000) / 60000);
-
-            const dep = trip.departureTime ? new Date(trip.departureTime) : null;
-            const arr = trip.arrivalTime ? new Date(trip.arrivalTime) : null;
-
-            return {
-              id: trip.id,
-              tripCode: trip.tripCode,
-              departureTime: dep
-                ? dep.toLocaleTimeString('vi-VN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-                : '06:00',
-              departureDate: dep ? dep.toLocaleDateString('vi-VN') : '15/01/2026',
-              arrivalTime: arr
-                ? arr.toLocaleTimeString('vi-VN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-                : '19:30',
-              arrivalDate: arr ? arr.toLocaleDateString('vi-VN') : '16/01/2026',
-              duration: `${durationHours}h ${durationMins}m`,
-              status: trip.status,
-              train: {
-                id: trip.train.id,
-                code: trip.train.code,
-                name: trip.train.name,
-              },
-              route: {
-                id: trip.route.id,
-                code: trip.route.code,
-                name: trip.route.name,
-                distanceKm: trip.route.distanceKm
-                  ? Number(trip.route.distanceKm)
-                  : 1726,
-                originStation: trip.route.originStation,
-                destinationStation: trip.route.destinationStation,
-              },
-              stops: trip.tripStations.map((ts) => ({
-                stationName: ts.station.name,
-                stationCode: ts.station.code,
-                arrivalTime: ts.arrivalTime
-                  ? new Date(ts.arrivalTime).toLocaleTimeString('vi-VN', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                  : '--:--',
-                departureTime: ts.departureTime
-                  ? new Date(ts.departureTime).toLocaleTimeString('vi-VN', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                  : '--:--',
-                stopDuration: '15p',
-              })),
-              minPrice,
-              totalSeats,
-              availableSeats,
-            };
-          }),
-        );
-      }
+    return Promise.all(
+      trips.map((trip) =>
+        this.enrichTripResult(
+          trip,
+          trip.route.originStationId,
+          trip.route.destinationStationId,
+        ),
+      ),
+    );
+  }
 
   async update(id: string, dto: UpdateTripDto) {
         await this.findOne(id);

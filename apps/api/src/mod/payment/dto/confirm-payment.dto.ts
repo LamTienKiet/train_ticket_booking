@@ -8,4 +8,9 @@ export class ConfirmPaymentDto {
   @IsOptional()
   @IsString()
   paymentMethod?: string;
+
+  // Khách vãng lai chứng minh quyền với đơn bằng SĐT đã dùng khi đặt
+  @IsOptional()
+  @IsString()
+  phone?: string;
 }

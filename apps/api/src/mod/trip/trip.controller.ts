@@ -25,8 +25,12 @@ export class TripController {
   }
 
   @Get(':id/seats')
-  findSeats(@Param('id') id: string) {
-    return this.tripService.findSeats(id);
+  findSeats(
+    @Param('id') id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.tripService.findSeats(id, from, to);
   }
 
   @Get(':id')

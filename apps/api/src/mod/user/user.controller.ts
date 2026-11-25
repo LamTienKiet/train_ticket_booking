@@ -1,12 +1,22 @@
-import { Role } from '@prisma/client';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { QueryUserDto } from './dto/query-user.dto';
+import { Role } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 
-@Roles(Role.ADMIN) // shortcut: module còn là code mẫu, khóa toàn bộ cho ADMIN tới khi viết xong
-@Controller('user')
+@Roles(Role.ADMIN)
+@Controller(['users', 'user'])
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -16,22 +26,22 @@ export class UserController {
   }
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() query: QueryUserDto) {
+    return this.userService.findAll(query);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+    return this.userService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+    return this.userService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+    return this.userService.remove(id);
   }
 }
