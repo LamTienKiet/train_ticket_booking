@@ -110,11 +110,15 @@ export class StationService {
   async remove(id: string) {
     const station = await this.prisma.station.findUnique({
       where: { id },
-      include: { _count: { select: { routeStations: true, tripStations: true } } },
+      include: {
+        _count: { select: { routeStations: true, tripStations: true, originRoutes: true, destinationRoutes: true } },
+      },
     });
     if (!station) throw new NotFoundException(`Không tìm thấy nhà ga với ID: ${id}`);
 
-    if (station._count.routeStations + station._count.tripStations > 0) {
+    // Ga đầu/cuối của tuyến cũng là khóa ngoại (không cascade), kể cả khi tuyến chưa có ga dừng
+    const { routeStations, tripStations, originRoutes, destinationRoutes } = station._count;
+    if (routeStations + tripStations + (originRoutes ?? 0) + (destinationRoutes ?? 0) > 0) {
       await this.prisma.station.update({ where: { id }, data: { status: 'INACTIVE' } });
       return { deactivated: true, message: 'Ga đang được dùng trong tuyến/chuyến nên đã chuyển sang ngừng hoạt động.' };
     }

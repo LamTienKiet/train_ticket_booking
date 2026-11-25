@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { safeNextPath } from "../utils/safeRedirect";
 import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import axios from "axios";
@@ -81,8 +82,7 @@ export default function LoginPage() {
       setFormSuccess("Đăng nhập thành công! Đang chuyển hướng...");
 
       // Quay về trang trước khi bị yêu cầu đăng nhập (chỉ nhận đường dẫn nội bộ), mặc định trang chủ
-      const next = new URLSearchParams(window.location.search).get("next");
-      const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+      const target = safeNextPath(new URLSearchParams(window.location.search).get("next"), window.location.origin);
       setTimeout(() => {
         router.push(target);
         router.refresh();

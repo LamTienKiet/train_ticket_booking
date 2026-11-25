@@ -13,6 +13,18 @@ import { QueryAdminTripDto } from './dto/query-admin-trip.dto';
 import { buildTripStations } from './trip-schedule';
 import { loadTripSegment, overlapsSegment, segmentPrice, TripSegment } from './segment';
 
+/** Trùng mã chuyến (unique trip_code) → 409 thay vì 500 */
+async function rethrowDuplicateCode<T>(tripCode: string | undefined, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new ConflictException(`Mã chuyến ${tripCode} đã tồn tại`);
+    }
+    throw e;
+  }
+}
+
 @Injectable()
 export class TripService {
   constructor(private readonly prisma: PrismaService) { }
@@ -574,7 +586,7 @@ export class TripService {
   async create(dto: CreateTripDto) {
     const departure = new Date(dto.departureTime);
     const schedule = await this.loadSchedule(this.prisma, dto.routeId, dto.trainId, departure);
-    return this.prisma.trip.create({
+    return rethrowDuplicateCode(dto.tripCode, () => this.prisma.trip.create({
       data: {
         tripCode: dto.tripCode,
         routeId: dto.routeId,
@@ -585,7 +597,7 @@ export class TripService {
         tripStations: { create: schedule.stops },
       },
       include: { tripStations: { orderBy: { stopOrder: 'asc' } } },
-    });
+    }));
   }
 
   /** Danh sách chuyến cho admin: mọi trạng thái, kèm số ghế đã bán / tổng ghế */
@@ -692,6 +704,10 @@ export class TripService {
   }
 
   async update(id: string, dto: UpdateTripDto) {
+    return rethrowDuplicateCode(dto.tripCode, () => this.updateTx(id, dto));
+  }
+
+  private updateTx(id: string, dto: UpdateTripDto) {
     return this.prisma.$transaction(async (tx) => {
       const trip = await tx.trip.findUnique({ where: { id } });
       if (!trip) throw new NotFoundException(`Không tìm thấy chuyến tàu với id: ${id}`);
@@ -723,18 +739,10 @@ export class TripService {
       const departure = new Date(dto.departureTime ?? trip.departureTime);
       const schedule = await this.loadSchedule(tx, routeId, trainId, departure);
 
-      if (routeId !== trip.routeId) {
-        // đổi tuyến: thay toàn bộ ga dừng
-        await tx.tripStation.deleteMany({ where: { tripId: id } });
-        await tx.tripStation.createMany({ data: schedule.stops.map((s) => ({ ...s, tripId: id })) });
-      } else {
-        for (const s of schedule.stops) {
-          await tx.tripStation.update({
-            where: { tripId_stationId: { tripId: id, stationId: s.stationId } },
-            data: { arrivalTime: s.arrivalTime, departureTime: s.departureTime },
-          });
-        }
-      }
+      // Dựng lại toàn bộ ga dừng theo tuyến hiện tại (tuyến có thể đã thêm/bớt ga sau khi tạo chuyến);
+      // an toàn vì chưa có đơn nào tham chiếu chặng của chuyến
+      await tx.tripStation.deleteMany({ where: { tripId: id } });
+      await tx.tripStation.createMany({ data: schedule.stops.map((s) => ({ ...s, tripId: id })) });
 
       return tx.trip.update({
         where: { id },

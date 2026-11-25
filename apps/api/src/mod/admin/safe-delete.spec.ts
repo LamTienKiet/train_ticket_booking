@@ -24,6 +24,12 @@ describe('Xóa an toàn', () => {
     expect(d.station.delete).not.toHaveBeenCalled();
   });
 
+  it('ga là ga đầu/cuối của tuyến (dù tuyến chưa có ga dừng) → INACTIVE, không xóa', async () => {
+    const d = db('station', { routeStations: 0, tripStations: 0, originRoutes: 0, destinationRoutes: 1 });
+    await expect(new StationService(d as never).remove('x')).resolves.toMatchObject({ deactivated: true });
+    expect(d.station.delete).not.toHaveBeenCalled();
+  });
+
   it('ga chưa dùng → xóa', async () => {
     const d = db('station', { routeStations: 0, tripStations: 0 });
     await expect(new StationService(d as never).remove('x')).resolves.toMatchObject({ deleted: true });

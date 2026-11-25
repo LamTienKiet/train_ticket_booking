@@ -57,18 +57,18 @@ describe('RolesGuard', () => {
       getHandler: () => null,
       getClass: () => null,
       switchToHttp: () => ({
-        getRequest: () => ({ user: role ? { role } : null }),
+        getRequest: () => ({ user: role ? { accountId: 'a1', role } : null }),
       }),
     }) as unknown as ExecutionContext;
-  const guard = new RolesGuard({
-    getAllAndOverride: () => [Role.ADMIN],
-  } as unknown as Reflector);
-
-  it('chỉ ADMIN qua được @Roles(ADMIN)', () => {
-    expect(guard.canActivate(ctx(Role.ADMIN))).toBe(true);
-    expect(() => guard.canActivate(ctx(Role.CUSTOMER))).toThrow(
-      ForbiddenException,
+  const guardFor = (role: Role) =>
+    new RolesGuard(
+      { getAllAndOverride: () => [Role.ADMIN] } as unknown as Reflector,
+      { account: { findUnique: async () => ({ role, status: 'ACTIVE' }) } } as never,
     );
-    expect(() => guard.canActivate(ctx())).toThrow(ForbiddenException);
+
+  it('chỉ ADMIN qua được @Roles(ADMIN)', async () => {
+    await expect(guardFor(Role.ADMIN).canActivate(ctx(Role.ADMIN))).resolves.toBe(true);
+    await expect(guardFor(Role.CUSTOMER).canActivate(ctx(Role.CUSTOMER))).rejects.toThrow(ForbiddenException);
+    await expect(guardFor(Role.ADMIN).canActivate(ctx())).rejects.toThrow(ForbiddenException);
   });
 });

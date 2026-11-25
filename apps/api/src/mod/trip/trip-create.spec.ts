@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { TripService } from './trip.service';
 
@@ -16,7 +17,7 @@ const makeDb = (opts: { stops?: object[]; coaches?: number; activeBookings?: num
       findUnique: jest.fn().mockResolvedValue({ id: 't1', routeId: 'r1', trainId: 'tr1' }),
       update: jest.fn().mockImplementation(({ data }) => data),
     },
-    tripStation: { update: jest.fn() },
+    tripStation: { update: jest.fn(), deleteMany: jest.fn(), createMany: jest.fn() },
     booking: { count: jest.fn().mockResolvedValue(opts.activeBookings ?? 0) },
     $transaction: (fn: (t: unknown) => unknown) => fn(db),
   };
@@ -59,15 +60,16 @@ describe('TripService.update', () => {
     expect(db.trip.update).not.toHaveBeenCalled();
   });
 
-  it('đổi giờ đi khi chưa có đơn → dời giờ chuyến và từng ga dừng', async () => {
+  it('đổi giờ đi khi chưa có đơn → dựng lại toàn bộ ga dừng theo tuyến hiện tại', async () => {
+    // tuyến có thể đã thêm/bớt ga sau khi tạo chuyến: không được update từng ga cũ (P2025 → 500)
     const db = makeDb();
     await new TripService(db as never).update('t1', { departureTime: '2026-12-01T02:00:00Z' });
     expect(db.trip.update.mock.calls[0][0].data.arrivalTime).toEqual(new Date('2026-12-02T08:00:00Z'));
-    expect(db.tripStation.update).toHaveBeenCalledTimes(3);
-    expect(db.tripStation.update.mock.calls[1][0]).toMatchObject({
-      where: { tripId_stationId: { tripId: 't1', stationId: 'HUE' } },
-      data: { arrivalTime: new Date('2026-12-01T12:00:00Z') },
-    });
+    expect(db.tripStation.update).not.toHaveBeenCalled();
+    expect(db.tripStation.deleteMany).toHaveBeenCalledWith({ where: { tripId: 't1' } });
+    const created = db.tripStation.createMany.mock.calls[0][0].data;
+    expect(created).toHaveLength(3);
+    expect(created[1]).toMatchObject({ tripId: 't1', stationId: 'HUE', arrivalTime: new Date('2026-12-01T12:00:00Z') });
   });
 
   it('chỉ đổi trạng thái → không đụng ga dừng', async () => {
@@ -75,5 +77,25 @@ describe('TripService.update', () => {
     await new TripService(db as never).update('t1', { status: 'CANCELLED' });
     expect(db.tripStation.update).not.toHaveBeenCalled();
     expect(db.trip.update).toHaveBeenCalled();
+  });
+});
+
+describe('Trùng mã chuyến', () => {
+  const p2002 = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+    code: 'P2002',
+    clientVersion: 'test',
+    meta: { target: ['trip_code'] },
+  });
+
+  it('tạo chuyến trùng mã → 409 thay vì 500', async () => {
+    const db = makeDb();
+    db.trip.create.mockRejectedValue(p2002);
+    await expect(new TripService(db as never).create(dto)).rejects.toThrow(new ConflictException(`Mã chuyến ${dto.tripCode} đã tồn tại`));
+  });
+
+  it('đổi sang mã đã có → 409', async () => {
+    const db = makeDb();
+    db.trip.update.mockRejectedValue(p2002);
+    await expect(new TripService(db as never).update('t1', { tripCode: 'X' })).rejects.toThrow(new ConflictException('Mã chuyến X đã tồn tại'));
   });
 });
