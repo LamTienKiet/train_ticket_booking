@@ -2,20 +2,20 @@
 
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
-import { MOCK_TRIP_DETAIL } from "./mock-trip-data";
 import Navbar from "../components/Navbar";
 import { api } from "../utils/axiosClient";
-
-const fmtTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Ho_Chi_Minh",
-  });
+import { apiErrorMessage } from "../utils/apiError";
+import { fmtDate, fmtTime } from "../utils/format";
 
 type Station = { id: string; name: string };
+type Stop = {
+  stopOrder: number;
+  station: Station;
+  arrivalTime: string | null;
+  departureTime: string | null;
+};
 type SearchStation = Station & { scheduledTime: string };
 type SearchTrip = {
   id: string;
@@ -29,7 +29,7 @@ type SearchTrip = {
   totalAvailableSeats: number;
 };
 
-// Đổi kết quả GET /trips/search về cùng dạng với GET /trips để dùng chung giao diện
+// GET /trips/search và GET /trips trả cùng dạng; đổi về dữ liệu hiển thị của một thẻ chuyến
 const toTripRow = (t: SearchTrip) => {
   const dep = t.originStation?.scheduledTime ?? t.departureTime;
   const arr = t.destinationStation?.scheduledTime ?? t.arrivalTime;
@@ -38,15 +38,19 @@ const toTripRow = (t: SearchTrip) => {
   return {
     id: t.id,
     train: t.train,
-    route: { ...t.route, originStation: t.originStation, destinationStation: t.destinationStation },
+    route: t.route,
+    originStation: t.originStation,
+    destinationStation: t.destinationStation,
     departureTime: fmtTime(dep),
+    departureDate: fmtDate(dep),
     arrivalTime: fmtTime(arr),
+    arrivalDate: fmtDate(arr),
     duration: `${Math.floor(mins / 60)}h ${mins % 60}m`,
     minPrice: prices.length ? Math.min(...prices) : 0,
     availableSeats: t.totalAvailableSeats,
-    stops: [],
   };
 };
+type TripRow = ReturnType<typeof toTripRow>;
 
 export default function TripPage() {
   return (
@@ -63,177 +67,233 @@ export default function TripPage() {
 }
 
 function TripContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const date = searchParams.get("date");
   const isSearch = Boolean(from && to && date);
+  const today = new Date().toLocaleDateString("en-CA");
 
-  // State quản lý danh sách chuyến tàu từ API
-  const [trips, setTrips] = useState<any[]>([]);
+  const [stations, setStations] = useState<Station[]>([]);
+  const [trips, setTrips] = useState<TripRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchInfo, setSearchInfo] = useState<{ from: string; to: string } | null>(null);
-  const [searchError, setSearchError] = useState("");
+  const [listError, setListError] = useState("");
 
-  // State quản lý xem lộ trình dừng của tàu nào (mở / đóng)
-  const [openStopsTrainId, setOpenStopsTrainId] = useState<string | null>(null);
+  // Form tìm kiếm ngay trên trang, điền sẵn theo URL
+  const [formFrom, setFormFrom] = useState(from ?? "");
+  const [formTo, setFormTo] = useState(to ?? "");
+  const [formDate, setFormDate] = useState(date ?? "");
+  const [formError, setFormError] = useState("");
 
-  const toggleStops = (trainId: string) => {
-    setOpenStopsTrainId((prev) => (prev === trainId ? null : trainId));
-  };
+  // Lịch trình ga dừng, tải khi khách bấm xem
+  const [openStopsId, setOpenStopsId] = useState<string | null>(null);
+  const [stopsByTrip, setStopsByTrip] = useState<Record<string, Stop[]>>({});
+  const [stopsError, setStopsError] = useState("");
 
   useEffect(() => {
-    if (isSearch) {
-      Promise.all([
-        api.get<SearchTrip[]>("/trips/search", {
-          params: { originStationId: from, destinationStationId: to, departureDate: date },
-        }),
-        api.get<Station[]>("/stations"),
-      ])
-        .then(([tripRes, stationRes]) => {
-          setSearchError("");
-          setTrips(tripRes.data.map(toTripRow));
-          const name = (id: string | null) =>
-            stationRes.data.find((s) => s.id === id)?.name ?? "";
-          setSearchInfo({ from: name(from), to: name(to) });
-        })
-        .catch((e) => {
-          setTrips([]);
-          const msg = e?.response?.data?.message;
-          setSearchError(Array.isArray(msg) ? msg.join(", ") : msg || "Không tìm được chuyến tàu.");
-        })
-        .finally(() => setIsLoading(false));
-      return;
-    }
+    api
+      .get<Station[]>("/stations")
+      .then(({ data }) => setStations(data))
+      .catch(() => setFormError("Không tải được danh sách ga."));
+  }, []);
 
-    const fetchTrips = async () => {
-      try {
-        const res = await fetch("http://localhost:3001/trips");
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            setTrips(data);
-          }
-        }
-      } catch (e) {
-        console.error("Lỗi khi tải danh sách chuyến tàu:", e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchTrips();
+  // Có điều kiện tìm => tìm theo chặng; không có => các chuyến sắp khởi hành
+  useEffect(() => {
+    const request = isSearch
+      ? api.get<SearchTrip[]>("/trips/search", {
+          params: { originStationId: from, destinationStationId: to, departureDate: date },
+        })
+      : api.get<SearchTrip[]>("/trips");
+    request
+      .then(({ data }) => {
+        setListError("");
+        setTrips(data.map(toTripRow));
+      })
+      .catch((e) => {
+        setTrips([]);
+        setListError(apiErrorMessage(e, "Không tải được danh sách chuyến tàu."));
+      })
+      .finally(() => setIsLoading(false));
   }, [isSearch, from, to, date]);
 
-  // Lấy thông tin tuyến đường tóm tắt
-  const firstTrip = trips.length > 0 ? trips[0] : null;
-  const originStationName =
-    searchInfo?.from || firstTrip?.route?.originStation?.name || MOCK_TRIP_DETAIL.originStation;
-  const destinationStationName =
-    searchInfo?.to ||
-    firstTrip?.route?.destinationStation?.name ||
-    MOCK_TRIP_DETAIL.destinationStation;
-  const departureDate = isSearch
-    ? new Date(`${date}T00:00:00`).toLocaleDateString("vi-VN")
-    : firstTrip?.departureDate || MOCK_TRIP_DETAIL.departureDate;
-  const distanceKm = Number(firstTrip?.route?.distanceKm || MOCK_TRIP_DETAIL.distanceKm);
-  const tripCode = firstTrip?.route?.code || MOCK_TRIP_DETAIL.tripCode;
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formFrom || !formTo || !formDate)
+      return setFormError("Vui lòng chọn ga đi, ga đến và ngày đi.");
+    if (formFrom === formTo) return setFormError("Ga đi và ga đến không được trùng nhau.");
+    setFormError("");
+    setIsLoading(true);
+    router.push(`/trips?${new URLSearchParams({ from: formFrom, to: formTo, date: formDate })}`);
+  };
+
+  const swapStations = () => {
+    setFormFrom(formTo);
+    setFormTo(formFrom);
+  };
+
+  const toggleStops = (tripId: string) => {
+    if (openStopsId === tripId) return setOpenStopsId(null);
+    setOpenStopsId(tripId);
+    setStopsError("");
+    if (stopsByTrip[tripId]) return;
+    api
+      .get<{ stops: Stop[] }>(`/trips/${tripId}`)
+      .then(({ data }) => setStopsByTrip((m) => ({ ...m, [tripId]: data.stops })))
+      .catch((e) => setStopsError(apiErrorMessage(e, "Không tải được lịch trình.")));
+  };
+
+  const stationName = (id: string | null) => stations.find((s) => s.id === id)?.name ?? "";
+  const heading = isSearch
+    ? `${stationName(from)} → ${stationName(to)}`
+    : "Chuyến tàu sắp khởi hành";
+  const subheading = isSearch
+    ? `Ngày đi ${new Date(`${date}T00:00:00`).toLocaleDateString("vi-VN")}`
+    : "Chọn một chuyến bên dưới, hoặc tìm theo ga và ngày bạn muốn đi";
 
   return (
     <main className={styles.main}>
-      {/* NAVBAR DÙNG CHUNG ĐỒNG BỘ AUTH */}
       <Navbar />
 
-      {/* ─────────────────────────────────────────────────────────────
-          NỘI DUNG CHÍNH: DANH SÁCH CHUYẾN TÀU
-          ───────────────────────────────────────────────────────────── */}
-      <div className={styles.container}>
-        {/* THANH TÓM TẮT HÀNH TRÌNH */}
-        <section className={styles.searchSummaryBar}>
-          <div className={styles.routeInfo}>
-            <span className={styles.routeText}>
-              {originStationName} ➔ {destinationStationName}
-            </span>
-            <span className={styles.routeDate}>
-              Ngày đi: {departureDate}
-            </span>
-          </div>
-          {(!isSearch || firstTrip) && (
-            <div className={styles.routeMeta}>
-              Khoảng cách: {distanceKm.toLocaleString("vi-VN")} km |
-              Mã tuyến: {tripCode}
-            </div>
-          )}
-        </section>
+      {/* KHUNG TIÊU ĐỀ + TÌM KIẾM */}
+      <section className={styles.hero}>
+        <div className={styles.heroInner}>
+          <h1 className={styles.heroTitle}>{heading}</h1>
+          <p className={styles.heroSub}>{subheading}</p>
 
-        {/* TIÊU ĐỀ DANH SÁCH TÀU */}
+          <form className={styles.searchPanel} onSubmit={handleSearch}>
+            <label className={styles.searchField}>
+              <span>Ga đi</span>
+              <select value={formFrom} onChange={(e) => setFormFrom(e.target.value)}>
+                <option value="">Chọn ga đi</option>
+                {stations.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              className={styles.swapBtn}
+              onClick={swapStations}
+              aria-label="Đổi chiều ga đi và ga đến"
+              title="Đổi chiều"
+            >
+              ⇄
+            </button>
+
+            <label className={styles.searchField}>
+              <span>Ga đến</span>
+              <select value={formTo} onChange={(e) => setFormTo(e.target.value)}>
+                <option value="">Chọn ga đến</option>
+                {stations.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.searchField}>
+              <span>Ngày đi</span>
+              <input
+                type="date"
+                min={today}
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+              />
+            </label>
+
+            <button type="submit" className={styles.searchBtn}>
+              Tìm chuyến
+            </button>
+          </form>
+          {formError && (
+            <p role="alert" className={styles.formError}>
+              {formError}
+            </p>
+          )}
+        </div>
+      </section>
+
+      <div className={styles.container}>
         <div className={styles.trainListHeader}>
-          <h1 className={styles.trainListTitle}>
-            Các đoàn tàu đảm nhận chuyến này ({trips.length > 0 || isSearch ? trips.length : MOCK_TRIP_DETAIL.trains.length} đoàn tàu)
-          </h1>
-          <span className={styles.trainCount}>
-            Chọn đoàn tàu phù hợp để chuyển sang bước chọn chỗ ngồi
-          </span>
+          <h2 className={styles.trainListTitle}>
+            {isLoading ? "Đang tải..." : `${trips.length} chuyến tàu`}
+          </h2>
+          {isSearch && (
+            <Link href="/trips" className={styles.clearSearch}>
+              Xem tất cả chuyến sắp chạy
+            </Link>
+          )}
         </div>
 
-        {/* DANH SÁCH CÁC ĐOÀN TÀU */}
         <div className={styles.trainsList}>
           {isLoading ? (
-            <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
-              Đang tải danh sách các chuyến tàu thực tế...
-            </div>
+            [0, 1, 2].map((i) => <div key={i} className={styles.skeletonCard} aria-hidden />)
           ) : trips.length > 0 ? (
             trips.map((trip) => {
               const isSoldOut = trip.availableSeats === 0;
-              const isStopsOpen = openStopsTrainId === trip.id;
+              const seatHref = isSearch
+                ? `/trips/seats?tripId=${trip.id}&from=${from}&to=${to}`
+                : `/trips/seats?tripId=${trip.id}`;
+              const segStations = isSearch ? [from, to] : [];
 
               return (
-                <div
+                <article
                   key={trip.id}
-                  className={`${styles.trainRowCard} ${
-                    isSoldOut ? styles.trainDisabled : ""
-                  }`}
+                  className={`${styles.trainRowCard} ${isSoldOut ? styles.trainDisabled : ""}`}
                 >
                   <div className={styles.trainMainContent}>
-                    {/* CỘT 1: MÁC TÀU */}
+                    {/* MÁC TÀU */}
                     <div className={styles.trainIdentity}>
-                      <span className={styles.trainCode}>Tàu {trip.train.code}</span>
+                      <span className={styles.trainCode}>{trip.train.code}</span>
                       <span className={styles.trainName}>{trip.train.name}</span>
+                      <button
+                        type="button"
+                        className={styles.toggleStopsBtn}
+                        aria-expanded={openStopsId === trip.id}
+                        onClick={() => toggleStops(trip.id)}
+                      >
+                        {openStopsId === trip.id ? "Ẩn lịch trình ▴" : "Xem lịch trình ▾"}
+                      </button>
                     </div>
 
-                    {/* CỘT 2: GIỜ CHẠY */}
+                    {/* GIỜ ĐI - GIỜ ĐẾN */}
                     <div className={styles.trainTimeline}>
                       <div className={styles.timeBlock}>
                         <span className={styles.timeVal}>{trip.departureTime}</span>
+                        <span className={styles.dateSub}>{trip.departureDate}</span>
                         <span className={styles.stationSub}>
-                          {trip.route.originStation?.name || "Ga đi"}
+                          {trip.originStation?.name || "Ga đi"}
                         </span>
                       </div>
 
                       <div className={styles.durationBlock}>
                         <span className={styles.durationText}>{trip.duration}</span>
                         <div className={styles.durationLine}></div>
+                        <span className={styles.routeCodeText}>{trip.route.code}</span>
                       </div>
 
-                      <div className={styles.timeBlock} style={{ textAlign: "right" }}>
+                      <div className={`${styles.timeBlock} ${styles.timeBlockEnd}`}>
                         <span className={styles.timeVal}>{trip.arrivalTime}</span>
+                        <span className={styles.dateSub}>{trip.arrivalDate}</span>
                         <span className={styles.stationSub}>
-                          {trip.route.destinationStation?.name || "Ga đến"}
+                          {trip.destinationStation?.name || "Ga đến"}
                         </span>
                       </div>
                     </div>
 
-                    {/* CỘT 3: SỐ GHẾ CÒN LẠI DƯỚI MỖI TÀU & GIÁ VÉ */}
+                    {/* GIÁ & CHỖ */}
                     <div className={styles.trainSeatStatus}>
                       <span className={styles.priceFromText}>Giá vé chỉ từ</span>
                       <span className={styles.priceVal}>
                         {Number(trip.minPrice).toLocaleString("vi-VN")} đ
                       </span>
-
-                      {/* SỐ CHỖ CÒN LẠI */}
                       {isSoldOut ? (
-                        <span className={styles.seatBadgeSoldOut}>
-                          Hết chỗ
-                        </span>
+                        <span className={styles.seatBadgeSoldOut}>Hết chỗ</span>
                       ) : (
                         <span className={styles.seatBadgeAvailable}>
                           Còn {trip.availableSeats} chỗ
@@ -241,194 +301,69 @@ function TripContent() {
                       )}
                     </div>
 
-                    {/* CỘT 4: NÚT CHỌN CHỖ HOẶC NÚT DISABLE */}
+                    {/* HÀNH ĐỘNG */}
                     <div className={styles.trainActionCol}>
                       {isSoldOut ? (
                         <button
                           type="button"
                           disabled
                           className={`${styles.btnSelectSeats} ${styles.btnDisabled}`}
-                          title="Đoàn tàu này đã hết chỗ, không thể chọn"
                         >
                           Hết vé
                         </button>
                       ) : (
-                        <Link
-                          href={`/trips/seats?tripId=${trip.id}&train=${trip.train.code}`}
-                          className={styles.btnSelectSeats}
-                        >
+                        <Link href={seatHref} className={styles.btnSelectSeats}>
                           Chọn chỗ
                         </Link>
-                      )}
-
-                      {trip.stops?.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => toggleStops(trip.id)}
-                          className={styles.toggleStopsBtn}
-                        >
-                          {isStopsOpen ? "Ẩn ga dừng ▲" : "Xem ga dừng ▼"}
-                        </button>
                       )}
                     </div>
                   </div>
 
-                  {/* KHU VỰC BẢNG GA DỪNG ĐỖ CHI TIẾT */}
-                  {isStopsOpen && (
+                  {openStopsId === trip.id && (
                     <div className={styles.stopsCollapse}>
-                      <table className={styles.stopsTable}>
-                        <thead>
-                          <tr>
-                            <th>STT</th>
-                            <th>Tên ga</th>
-                            <th>Mã ga</th>
-                            <th>Giờ đến</th>
-                            <th>Giờ đi</th>
-                            <th>Thời gian đỗ</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {trip.stops?.map((stop: any, sIndex: number) => (
-                            <tr key={sIndex}>
-                              <td>{sIndex + 1}</td>
-                              <td>
-                                <strong>{stop.stationName}</strong>
-                              </td>
-                              <td>{stop.stationCode}</td>
-                              <td>{stop.arrivalTime}</td>
-                              <td>{stop.departureTime}</td>
-                              <td>{stop.stopDuration}</td>
-                            </tr>
+                      {stopsByTrip[trip.id] ? (
+                        <ol className={styles.stopsTimeline}>
+                          {stopsByTrip[trip.id].map((st, i, all) => (
+                            <li
+                              key={st.stopOrder}
+                              className={
+                                segStations.includes(st.station.id) ? styles.stopActive : undefined
+                              }
+                            >
+                              <span className={styles.stopName}>{st.station.name}</span>
+                              <span className={styles.stopTimes}>
+                                {i === 0 || !st.arrivalTime
+                                  ? `Xuất phát ${fmtTime(st.departureTime ?? "")}`
+                                  : i === all.length - 1 || !st.departureTime
+                                    ? `Đến ${fmtTime(st.arrivalTime)}`
+                                    : `Đến ${fmtTime(st.arrivalTime)} · Đi ${fmtTime(st.departureTime)}`}
+                              </span>
+                            </li>
                           ))}
-                        </tbody>
-                      </table>
+                        </ol>
+                      ) : (
+                        <span role="status">{stopsError || "Đang tải lịch trình..."}</span>
+                      )}
                     </div>
                   )}
-                </div>
+                </article>
               );
             })
-          ) : isSearch ? (
-            <div role="status" style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
-              {searchError || "Không có chuyến tàu nào cho tuyến và ngày đã chọn."}{" "}
-              <Link href="/">Đổi tìm kiếm</Link>
-            </div>
           ) : (
-            MOCK_TRIP_DETAIL.trains.map((train) => {
-              const isSoldOut = train.availableSeats === 0;
-              const isStopsOpen = openStopsTrainId === train.id;
-
-              return (
-                <div
-                  key={train.id}
-                  className={`${styles.trainRowCard} ${
-                    isSoldOut ? styles.trainDisabled : ""
-                  }`}
-                >
-                  <div className={styles.trainMainContent}>
-                    <div className={styles.trainIdentity}>
-                      <span className={styles.trainCode}>Tàu {train.trainCode}</span>
-                      <span className={styles.trainName}>{train.trainName}</span>
-                    </div>
-
-                    <div className={styles.trainTimeline}>
-                      <div className={styles.timeBlock}>
-                        <span className={styles.timeVal}>{train.departureTime}</span>
-                        <span className={styles.stationSub}>Hà Nội</span>
-                      </div>
-
-                      <div className={styles.durationBlock}>
-                        <span className={styles.durationText}>{train.duration}</span>
-                        <div className={styles.durationLine}></div>
-                      </div>
-
-                      <div className={styles.timeBlock} style={{ textAlign: "right" }}>
-                        <span className={styles.timeVal}>{train.arrivalTime}</span>
-                        <span className={styles.stationSub}>Sài Gòn</span>
-                      </div>
-                    </div>
-
-                    <div className={styles.trainSeatStatus}>
-                      <span className={styles.priceFromText}>Giá vé chỉ từ</span>
-                      <span className={styles.priceVal}>
-                        {train.minPrice.toLocaleString("vi-VN")} đ
-                      </span>
-
-                      {isSoldOut ? (
-                        <span className={styles.seatBadgeSoldOut}>
-                          Hết chỗ
-                        </span>
-                      ) : (
-                        <span className={styles.seatBadgeAvailable}>
-                          Còn {train.availableSeats} chỗ
-                        </span>
-                      )}
-                    </div>
-
-                    <div className={styles.trainActionCol}>
-                      {isSoldOut ? (
-                        <button
-                          type="button"
-                          disabled
-                          className={`${styles.btnSelectSeats} ${styles.btnDisabled}`}
-                        >
-                          Hết vé
-                        </button>
-                      ) : (
-                        <Link
-                          href={`/trips/seats?train=${train.trainCode}`}
-                          className={styles.btnSelectSeats}
-                        >
-                          Chọn chỗ
-                        </Link>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => toggleStops(train.id)}
-                        className={styles.toggleStopsBtn}
-                      >
-                        {isStopsOpen ? "Ẩn ga dừng ▲" : "Xem ga dừng ▼"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {isStopsOpen && (
-                    <div className={styles.stopsCollapse}>
-                      <table className={styles.stopsTable}>
-                        <thead>
-                          <tr>
-                            <th>STT</th>
-                            <th>Tên ga</th>
-                            <th>Mã ga</th>
-                            <th>Giờ đến</th>
-                            <th>Giờ đi</th>
-                            <th>Thời gian đỗ</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {MOCK_TRIP_DETAIL.stops.map((stop, sIndex) => (
-                            <tr key={sIndex}>
-                              <td>{sIndex + 1}</td>
-                              <td>
-                                <strong>{stop.stationName}</strong>
-                              </td>
-                              <td>{stop.stationCode}</td>
-                              <td>{stop.arrivalTime}</td>
-                              <td>{stop.departureTime}</td>
-                              <td>{stop.stopDuration}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              );
-            })
+            <div role="status" className={styles.emptyState}>
+              <div className={styles.emptyIcon} aria-hidden>
+                🚆
+              </div>
+              <p>
+                {listError ||
+                  (isSearch
+                    ? "Không có chuyến tàu nào cho chặng và ngày đã chọn. Thử đổi ngày hoặc ga khác."
+                    : "Hiện chưa có chuyến tàu nào sắp khởi hành.")}
+              </p>
+            </div>
           )}
         </div>
       </div>
     </main>
   );
 }
-

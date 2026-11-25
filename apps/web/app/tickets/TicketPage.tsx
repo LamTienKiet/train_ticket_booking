@@ -10,7 +10,10 @@ import {
   TicketPassengerDetail,
   TicketViewMode,
 } from "./types/ticket.types";
-import { MOCK_BOOKING_RECORDS } from "./mock-tickets";
+import { api } from "../utils/axiosClient";
+import { apiErrorMessage } from "../utils/apiError";
+import { fmtDate, fmtDuration, fmtTime } from "../utils/format";
+import { bookingSegment } from "../utils/bookingSegment";
 
 import TicketHeader from "./components/TicketHeader";
 import TicketLookupForm from "./components/TicketLookupForm";
@@ -50,35 +53,24 @@ function mapBackendBookingToRecord(b: any): BookingRecord {
     }
   }
 
-  const dep = b.trip?.departureTime ? new Date(b.trip.departureTime) : null;
-  const arr = b.trip?.arrivalTime ? new Date(b.trip.arrivalTime) : null;
-  const booked = b.createdAt ? new Date(b.createdAt) : new Date();
+  const { trip } = b;
+    const seg = bookingSegment(b);
 
   return {
     id: b.id,
     bookingCode: b.bookingCode,
-    status: b.status as any,
-    bookedAt: booked.toLocaleString("vi-VN"),
-    trainCode: b.trip?.train?.code || "SE1",
-    originStation: b.trip?.route?.originStation?.name || "Hà Nội",
-    originCode: b.trip?.route?.originStation?.code || "HAN",
-    destinationStation: b.trip?.route?.destinationStation?.name || "Sài Gòn",
-    destinationCode: b.trip?.route?.destinationStation?.code || "SGN",
-    departureTime: dep
-      ? dep.toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "06:00",
-    departureDate: dep ? dep.toLocaleDateString("vi-VN") : "15/01/2026",
-    arrivalTime: arr
-      ? arr.toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "19:30",
-    arrivalDate: arr ? arr.toLocaleDateString("vi-VN") : "16/01/2026",
-    duration: "31 giờ 30 phút",
+    status: b.status,
+    bookedAt: new Date(b.createdAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }),
+    trainCode: trip.train.code,
+    originStation: seg.origin.name,
+    originCode: seg.origin.code,
+    destinationStation: seg.destination.name,
+    destinationCode: seg.destination.code,
+    departureTime: fmtTime(seg.departureTime),
+    departureDate: fmtDate(seg.departureTime),
+    arrivalTime: fmtTime(seg.arrivalTime),
+    arrivalDate: fmtDate(seg.arrivalTime),
+    duration: fmtDuration(seg.departureTime, seg.arrivalTime),
     contactName: b.contactName || "Khách hàng",
     contactPhone: b.contactPhone || "",
     contactEmail: b.contactEmail || "",
@@ -88,10 +80,11 @@ function mapBackendBookingToRecord(b: any): BookingRecord {
 }
 
 export default function TicketPage() {
-  // Danh sách đơn vé: load từ API nếu có, fallback sang mock
-  const [bookings, setBookings] = useState<BookingRecord[]>(
-    MOCK_BOOKING_RECORDS
-  );
+  // Vé của tôi (cần đăng nhập) và kết quả tra cứu PNR được giữ riêng
+  const [myBookings, setMyBookings] = useState<BookingRecord[]>([]);
+  const [lookupResults, setLookupResults] = useState<BookingRecord[]>([]);
+  const [myError, setMyError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Chế độ hiển thị: Vé của tôi vs Tra cứu theo mã PNR
   const [viewMode, setViewMode] = useState<TicketViewMode>("MY_TICKETS");
@@ -111,79 +104,46 @@ export default function TicketPage() {
 
   // Tự động tải danh sách vé cá nhân nếu người dùng đã đăng nhập
   useEffect(() => {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("token") || localStorage.getItem("access_token")
-        : null;
-
-    if (!token) return;
-
-    const fetchMyBookings = async () => {
-      try {
-        const res = await fetch("http://localhost:3001/bookings/user/my", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            setBookings(data.map(mapBackendBookingToRecord));
-          }
-        }
-      } catch (e) {
-        console.error("Lỗi khi tải vé cá nhân:", e);
-      }
-    };
-
-    fetchMyBookings();
+    const loggedIn = Boolean(
+      localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken"),
+    );
+    if (!loggedIn) return;
+    // Token được axiosClient tự gắn
+    api
+      .get("/bookings/user/my")
+      .then(({ data }) => setMyBookings(data.map(mapBackendBookingToRecord)))
+      .catch((e) => setMyError(apiErrorMessage(e, "Không tải được vé của bạn.")));
   }, []);
+
+  const bookings = viewMode === "QUICK_LOOKUP" ? lookupResults : myBookings;
 
   // Danh sách hiển thị tùy theo chế độ & bộ lọc
   const displayedBookings = useMemo(() => {
     if (viewMode === "QUICK_LOOKUP") {
-      if (!hasSearchedLookup) return [];
-      return bookings;
+      return hasSearchedLookup ? lookupResults : [];
     }
 
-    if (activeTab === "ALL") return bookings;
-    return bookings.filter((b) => b.status === activeTab);
-  }, [viewMode, activeTab, bookings, hasSearchedLookup]);
+    if (activeTab === "ALL") return myBookings;
+    return myBookings.filter((b) => b.status === activeTab);
+  }, [viewMode, activeTab, myBookings, lookupResults, hasSearchedLookup]);
 
   const handleLookupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLookupError(null);
-    setHasSearchedLookup(true);
-
-    const code = bookingCodeQuery.trim().toUpperCase();
-    const contact = contactQuery.trim();
 
     try {
-      const res = await fetch(
-        `http://localhost:3001/bookings/public/lookup?bookingCode=${encodeURIComponent(
-          code
-        )}&phone=${encodeURIComponent(contact)}`
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        setBookings([mapBackendBookingToRecord(data)]);
-      } else {
-        // Fallback thử tìm trong mock bookings nếu API không có
-        const matched = MOCK_BOOKING_RECORDS.filter((b) => {
-          const matchCode = !code || b.bookingCode.toUpperCase() === code;
-          const matchContact =
-            !contact ||
-            b.contactPhone.toLowerCase().includes(contact.toLowerCase()) ||
-            b.contactEmail.toLowerCase().includes(contact.toLowerCase());
-          return matchCode && matchContact;
-        });
-        setBookings(matched);
-      }
-    } catch {
-      // Fallback khi offline
-      const matched = MOCK_BOOKING_RECORDS.filter(
-        (b) => b.bookingCode.toUpperCase() === code
-      );
-      setBookings(matched);
+      const { data } = await api.get("/bookings/public/lookup", {
+        params: {
+          bookingCode: bookingCodeQuery.trim().toUpperCase(),
+          phone: contactQuery.trim(),
+        },
+      });
+      setLookupResults([mapBackendBookingToRecord(data)]);
+    } catch (err) {
+      setLookupResults([]);
+      setLookupError(apiErrorMessage(err, "Không tìm thấy đơn đặt vé."));
+    } finally {
+      setHasSearchedLookup(true);
     }
   };
 
@@ -192,42 +152,34 @@ export default function TicketPage() {
     setContactQuery("");
     setHasSearchedLookup(false);
     setLookupError(null);
-    setBookings(MOCK_BOOKING_RECORDS);
+    setLookupResults([]);
   };
 
   const handleConfirmCancel = async (bookingId: string, reason: string) => {
+    const target = bookings.find((b) => b.id === bookingId);
+    if (!target) return;
+    setActionError(null);
     try {
-      const target = bookings.find((b) => b.id === bookingId);
-      const code = target?.bookingCode || bookingId;
-
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("token") || localStorage.getItem("access_token")
-          : null;
-
-      await fetch(`http://localhost:3001/bookings/${code}/cancel`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ reason }),
+      // Khách tra cứu bằng PNR chứng minh quyền hủy bằng SĐT đã nhập; user đăng nhập dùng token
+      await api.post(`/bookings/${encodeURIComponent(target.bookingCode)}/cancel`, {
+        reason,
+        phone: viewMode === "QUICK_LOOKUP" ? contactQuery.trim() : undefined,
       });
 
-      // Cập nhật ngay trên giao diện
-      setBookings((prev) =>
-        prev.map((item) =>
-          item.id === bookingId || item.bookingCode === code
-            ? { ...item, status: "CANCELLED" }
-            : item
-        )
-      );
-    } catch (e) {
-      console.error("Lỗi khi hủy vé:", e);
+      const markCancelled = (list: BookingRecord[]) =>
+        list.map((item) =>
+          item.id === bookingId ? { ...item, status: "CANCELLED" as const } : item,
+        );
+      setMyBookings(markCancelled);
+      setLookupResults(markCancelled);
+    } catch (err) {
+      setActionError(apiErrorMessage(err, "Hủy vé thất bại. Vui lòng thử lại."));
     } finally {
       setSelectedCancelBooking(null);
     }
   };
+
+  const shownError = viewMode === "QUICK_LOOKUP" ? lookupError : myError;
 
   return (
     <main className={styles.main}>
@@ -268,11 +220,13 @@ export default function TicketPage() {
               <strong>Số điện thoại / Email</strong> đã dùng khi đặt vé để kiểm
               tra vé điện tử mà không cần đăng nhập.
             </p>
-            <div className={styles.sampleHintChip}>
-              Mã mẫu dùng thử: <strong>LR-849201</strong> • SĐT:{" "}
-              <strong>0912345678</strong>
-            </div>
           </div>
+        )}
+
+        {(actionError || shownError) && (
+          <p role="alert" style={{ color: "#b91c1c", textAlign: "center", margin: "12px 0" }}>
+            {actionError || shownError}
+          </p>
         )}
 
         {/* DANH SÁCH ĐƠN VÉ */}
@@ -303,7 +257,7 @@ export default function TicketPage() {
                     ? "Vui lòng kiểm tra lại Mã đặt chỗ (PNR) hoặc Số điện thoại / Email đã nhập."
                     : "Hiện bạn chưa có đơn đặt vé nào thuộc trạng thái này."}
                 </p>
-                <Link href="/trips" className={styles.primaryBtn}>
+                <Link href="/" className={styles.primaryBtn}>
                   Tìm & Đặt vé mới ngay
                 </Link>
               </div>

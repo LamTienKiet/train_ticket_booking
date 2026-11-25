@@ -2,7 +2,12 @@
 
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import styles from "./page.module.css";
+import { api } from "../utils/axiosClient";
+import { apiErrorMessage } from "../utils/apiError";
+import { fmtDate, fmtDuration, fmtTime } from "../utils/format";
+import { bookingSegment } from "../utils/bookingSegment";
 
 import {
   PaymentMethodType,
@@ -21,41 +26,32 @@ import ElectronicTicketList from "./components/ElectronicTicketList";
 function PaymentContent() {
   const searchParams = useSearchParams();
   const pnrParam = searchParams.get("pnr");
-  const trainParam = searchParams.get("train") || "SE1";
-  const seatsParam = searchParams.get("seats") || "1-02,1-06";
   const methodParam = (searchParams.get("method") || "VIETQR") as PaymentMethodType;
-  const totalParam = Number(searchParams.get("total")) || 0;
-  const initialStatus =
-    searchParams.get("status") === "success" ? "SUCCESS" : "PENDING";
 
   // State điều phối 2 màn hình: Chờ thanh toán (PENDING) & Thành công + Vé QR (SUCCESS)
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initialStatus);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("PENDING");
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethodType>(methodParam);
 
   // State lưu dữ liệu đơn hàng lấy từ API Backend
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- response Prisma lồng nhiều cấp
   const [realBooking, setRealBooking] = useState<any>(null);
+  const [loadError, setLoadError] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
-  // Lấy dữ liệu đơn đặt chỗ từ Backend nếu có PNR
+  // Lấy dữ liệu đơn đặt chỗ từ Backend
   useEffect(() => {
     if (!pnrParam) return;
-    const fetchBooking = async () => {
-      try {
-        const res = await fetch(`http://localhost:3001/bookings/${pnrParam}`);
-        if (res.ok) {
-          const data = await res.json();
-          setRealBooking(data);
-          if (data.status === "CONFIRMED") {
-            setPaymentStatus("SUCCESS");
-          }
-        }
-      } catch (e) {
-        console.error("Lỗi khi tải thông tin đơn đặt vé:", e);
-      }
-    };
-    fetchBooking();
+    // Khách vãng lai chứng minh quyền xem đơn bằng SĐT lưu lúc đặt; user đăng nhập dùng token
+    const phone = sessionStorage.getItem(`booking-phone:${pnrParam}`) ?? undefined;
+    api
+      .get(`/bookings/${encodeURIComponent(pnrParam)}`, { params: { phone } })
+      .then(({ data }) => {
+        setRealBooking(data);
+        if (data.status === "CONFIRMED") setPaymentStatus("SUCCESS");
+      })
+      .catch((e) => setLoadError(apiErrorMessage(e, "Không tải được đơn đặt vé.")));
   }, [pnrParam]);
 
   // Bộ đếm thời gian giữ chỗ thực tế
@@ -85,45 +81,29 @@ function PaymentContent() {
 
   // Xử lý xác nhận thanh toán gọi Backend API
   const handleConfirmPayment = async () => {
-    if (!pnrParam) {
-      setPaymentStatus("SUCCESS");
-      if (typeof window !== "undefined") {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-      return;
-    }
+    if (!pnrParam) return;
 
     setIsConfirming(true);
     setConfirmError(null);
     try {
-      const res = await fetch("http://localhost:3001/payments/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookingCode: pnrParam,
-          paymentMethod: paymentMethod,
-        }),
+      const { data } = await api.post("/payments/confirm", {
+        bookingCode: pnrParam,
+        paymentMethod,
+        phone: sessionStorage.getItem(`booking-phone:${pnrParam}`) ?? undefined,
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Xác nhận thanh toán thất bại.");
-      }
 
       setRealBooking(data);
       setPaymentStatus("SUCCESS");
-      if (typeof window !== "undefined") {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    } catch (err: any) {
-      setConfirmError(err.message || "Lỗi khi xử lý thanh toán.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setConfirmError(apiErrorMessage(err, "Xác nhận thanh toán thất bại."));
     } finally {
       setIsConfirming(false);
     }
   };
 
-  // Tạo dữ liệu đơn đặt vé: ưu tiên dữ liệu từ DB, fallback sang mock
-  const orderInfo: PaymentOrderInfo = useMemo(() => {
+  // Dữ liệu đơn đặt vé từ DB (null khi chưa tải xong)
+  const orderInfo: PaymentOrderInfo | null = useMemo(() => {
     if (realBooking) {
       const tickets: TicketPassengerItem[] = [];
       const passList = realBooking.passengers || [];
@@ -155,37 +135,21 @@ function PaymentContent() {
         }
       }
 
-      const dep = realBooking.trip?.departureTime
-        ? new Date(realBooking.trip.departureTime)
-        : null;
-      const arr = realBooking.trip?.arrivalTime
-        ? new Date(realBooking.trip.arrivalTime)
-        : null;
+      const { trip } = realBooking;
+    const seg = bookingSegment(realBooking);
 
       return {
         bookingCode: realBooking.bookingCode,
-        trainCode: realBooking.trip?.train?.code || trainParam,
-        originStation: realBooking.trip?.route?.originStation?.name || "Hà Nội",
-        originCode: realBooking.trip?.route?.originStation?.code || "HAN",
-        destinationStation:
-          realBooking.trip?.route?.destinationStation?.name || "Sài Gòn",
-        destinationCode:
-          realBooking.trip?.route?.destinationStation?.code || "SGN",
-        departureTime: dep
-          ? dep.toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "06:00",
-        departureDate: dep ? dep.toLocaleDateString("vi-VN") : "15/01/2026",
-        arrivalTime: arr
-          ? arr.toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "19:30",
-        arrivalDate: arr ? arr.toLocaleDateString("vi-VN") : "16/01/2026",
-        duration: "31 giờ 30 phút",
+        trainCode: trip.train.code,
+        originStation: seg.origin.name,
+        originCode: seg.origin.code,
+        destinationStation: seg.destination.name,
+        destinationCode: seg.destination.code,
+        departureTime: fmtTime(seg.departureTime),
+        departureDate: fmtDate(seg.departureTime),
+        arrivalTime: fmtTime(seg.arrivalTime),
+        arrivalDate: fmtDate(seg.arrivalTime),
+        duration: fmtDuration(seg.departureTime, seg.arrivalTime),
         contactName: realBooking.contactName || "Khách hàng",
         contactPhone: realBooking.contactPhone || "",
         contactEmail: realBooking.contactEmail || "",
@@ -194,49 +158,17 @@ function PaymentContent() {
       };
     }
 
-    // Dữ liệu mẫu ban đầu nếu chưa có PNR
-    const seatList = seatsParam.split(",").filter(Boolean);
-    const tickets: TicketPassengerItem[] = (
-      seatList.length > 0 ? seatList : ["1-02", "1-06"]
-    ).map((item, idx) => {
-      const [coach = "1", seat = `0${idx + 1}`] = item.split("-");
-      const isCoachOne = coach === "1";
-      return {
-        ticketCode: `VE-849201-0${idx + 1}`,
-        passengerName: idx === 0 ? "NGUYEN VAN AN" : "TRAN THI BINH",
-        passengerTypeLabel: "Người lớn",
-        idCard: idx === 0 ? "001098001234" : "001199005678",
-        coachNumber: coach,
-        seatNumber: seat,
-        seatType: isCoachOne ? "Ngồi mềm điều hòa" : "Khoang 4 nằm mềm",
-        price: isCoachOne ? 850000 : 1250000,
-      };
-    });
+    return null;
+  }, [realBooking]);
 
-    const computedTotal =
-      totalParam > 0
-        ? totalParam
-        : tickets.reduce((sum, t) => sum + t.price, 0);
-
-    return {
-      bookingCode: "LR-849201",
-      trainCode: trainParam,
-      originStation: "Hà Nội",
-      originCode: "HAN",
-      destinationStation: "Sài Gòn",
-      destinationCode: "SGO",
-      departureTime: "06:00",
-      departureDate: "15/01/2026",
-      arrivalTime: "19:30",
-      arrivalDate: "16/01/2026",
-      duration: "37 giờ 30 phút",
-      contactName: "Nguyễn Văn An",
-      contactPhone: "0912 345 678",
-      contactEmail: "nguyenvanan@email.com",
-      totalAmount: computedTotal,
-      tickets,
-    };
-  }, [realBooking, trainParam, seatsParam, totalParam]);
+  if (!pnrParam || loadError || !orderInfo) {
+    return (
+      <div role="status" style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
+        {!pnrParam ? "Không có mã đặt chỗ." : loadError || "Đang tải đơn đặt vé..."}{" "}
+        {(!pnrParam || loadError) && <Link href="/tickets">Tra cứu vé</Link>}
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
