@@ -25,10 +25,6 @@ export class CreateTripDto {
   @IsNotEmpty()
   departureTime!: string;
 
-  @IsDateString()
-  @IsNotEmpty()
-  arrivalTime!: string;
-
   @IsEnum(TripStatus)
   @IsOptional()
   status?: TripStatus;

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SearchTripDto } from './dto/search-trip.dto';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
+import { BookingStatus } from '@prisma/client';
+import { buildTripStations } from './trip-schedule';
 import { loadTripSegment, overlapsSegment, segmentPrice, TripSegment } from './segment';
 
 @Injectable()
@@ -568,17 +571,21 @@ export class TripService {
   // ──────────────────────────────────────────────
 
   async create(dto: CreateTripDto) {
-      return this.prisma.trip.create({
-        data: {
-          tripCode: dto.tripCode,
-          routeId: dto.routeId,
-          trainId: dto.trainId,
-          departureTime: new Date(dto.departureTime),
-          arrivalTime: new Date(dto.arrivalTime),
-          ...(dto.status && { status: dto.status }),
-        },
-      });
-    }
+    const departure = new Date(dto.departureTime);
+    const schedule = await this.loadSchedule(this.prisma, dto.routeId, dto.trainId, departure);
+    return this.prisma.trip.create({
+      data: {
+        tripCode: dto.tripCode,
+        routeId: dto.routeId,
+        trainId: dto.trainId,
+        departureTime: departure,
+        arrivalTime: schedule.arrivalTime,
+        ...(dto.status && { status: dto.status }),
+        tripStations: { create: schedule.stops },
+      },
+      include: { tripStations: { orderBy: { stopOrder: 'asc' } } },
+    });
+  }
 
   /** Danh sách chuyến sắp chạy (cả tuyến), cùng dạng dữ liệu với search để web dùng chung */
   async findAll() {
@@ -623,19 +630,79 @@ export class TripService {
   }
 
   async update(id: string, dto: UpdateTripDto) {
-        await this.findOne(id);
-        return this.prisma.trip.update({
+    return this.prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.findUnique({ where: { id } });
+      if (!trip) throw new NotFoundException(`Không tìm thấy chuyến tàu với id: ${id}`);
+
+      const reschedule =
+        dto.departureTime !== undefined ||
+        (dto.routeId !== undefined && dto.routeId !== trip.routeId) ||
+        (dto.trainId !== undefined && dto.trainId !== trip.trainId);
+
+      if (!reschedule) {
+        return tx.trip.update({
           where: { id },
           data: {
             ...(dto.tripCode && { tripCode: dto.tripCode }),
-            ...(dto.routeId && { routeId: dto.routeId }),
-            ...(dto.trainId && { trainId: dto.trainId }),
-            ...(dto.departureTime && { departureTime: new Date(dto.departureTime) }),
-            ...(dto.arrivalTime && { arrivalTime: new Date(dto.arrivalTime) }),
             ...(dto.status && { status: dto.status }),
           },
         });
       }
+
+      const activeBookings = await tx.booking.count({
+        where: { tripId: id, status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] } },
+      });
+      if (activeBookings > 0) {
+        throw new ConflictException('Chuyến đã có vé được đặt, không thể đổi giờ, tuyến hoặc tàu');
+      }
+
+      const routeId = dto.routeId ?? trip.routeId;
+      const trainId = dto.trainId ?? trip.trainId;
+      const departure = new Date(dto.departureTime ?? trip.departureTime);
+      const schedule = await this.loadSchedule(tx, routeId, trainId, departure);
+
+      if (routeId !== trip.routeId) {
+        // đổi tuyến: thay toàn bộ ga dừng
+        await tx.tripStation.deleteMany({ where: { tripId: id } });
+        await tx.tripStation.createMany({ data: schedule.stops.map((s) => ({ ...s, tripId: id })) });
+      } else {
+        for (const s of schedule.stops) {
+          await tx.tripStation.update({
+            where: { tripId_stationId: { tripId: id, stationId: s.stationId } },
+            data: { arrivalTime: s.arrivalTime, departureTime: s.departureTime },
+          });
+        }
+      }
+
+      return tx.trip.update({
+        where: { id },
+        data: {
+          ...(dto.tripCode && { tripCode: dto.tripCode }),
+          ...(dto.status && { status: dto.status }),
+          routeId,
+          trainId,
+          departureTime: departure,
+          arrivalTime: schedule.arrivalTime,
+        },
+      });
+    });
+  }
+
+  /** Lịch ga dừng của chuyến; chặn tuyến chưa có ga dừng hoặc tàu chưa có toa (chuyến sẽ không đặt được) */
+  private async loadSchedule(
+    tx: Pick<PrismaService, 'routeStation' | 'coach'>,
+    routeId: string,
+    trainId: string,
+    departure: Date,
+  ) {
+    const [stops, coaches] = await Promise.all([
+      tx.routeStation.findMany({ where: { routeId } }),
+      tx.coach.count({ where: { trainId } }),
+    ]);
+    if (stops.length < 2) throw new BadRequestException('Tuyến chưa có ga dừng');
+    if (coaches === 0) throw new BadRequestException('Tàu chưa có toa');
+    return buildTripStations(departure, stops);
+  }
 
   async remove(id: string) {
         await this.findOne(id);
