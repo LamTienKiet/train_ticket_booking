@@ -96,6 +96,12 @@ export default function Navbar() {
                 </span>
               </div>
 
+              {currentUser.role === "ADMIN" && (
+                <Link href="/admin" className={styles.myTicketsBtn}>
+                  Quản trị
+                </Link>
+              )}
+
               <Link href="/tickets" className={styles.myTicketsBtn}>
                 Vé của tôi
               </Link>

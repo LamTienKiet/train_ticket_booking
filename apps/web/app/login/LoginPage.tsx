@@ -80,9 +80,11 @@ export default function LoginPage() {
 
       setFormSuccess("Đăng nhập thành công! Đang chuyển hướng...");
 
-      // Chuyển hướng về trang chủ
+      // Quay về trang trước khi bị yêu cầu đăng nhập (chỉ nhận đường dẫn nội bộ), mặc định trang chủ
+      const next = new URLSearchParams(window.location.search).get("next");
+      const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
       setTimeout(() => {
-        router.push("/");
+        router.push(target);
         router.refresh();
       }, 800);
     } catch (err: unknown) {
