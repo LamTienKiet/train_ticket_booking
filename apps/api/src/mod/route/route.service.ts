@@ -66,6 +66,7 @@ export class RouteService {
             stopOrder: s.stopOrder,
             arrivalOffsetMinutes: s.arrivalOffsetMinutes,
             departureOffsetMinutes: s.departureOffsetMinutes,
+            distanceFromOriginKm: s.distanceFromOriginKm,
           })),
         });
       }
@@ -232,6 +233,7 @@ export class RouteService {
               stopOrder: s.stopOrder,
               arrivalOffsetMinutes: s.arrivalOffsetMinutes,
               departureOffsetMinutes: s.departureOffsetMinutes,
+            distanceFromOriginKm: s.distanceFromOriginKm,
             })),
           });
         }
@@ -315,6 +317,7 @@ export class RouteService {
         stopOrder: dto.stopOrder,
         arrivalOffsetMinutes: dto.arrivalOffsetMinutes,
         departureOffsetMinutes: dto.departureOffsetMinutes,
+        distanceFromOriginKm: dto.distanceFromOriginKm,
       },
       create: {
         routeId,
@@ -322,6 +325,7 @@ export class RouteService {
         stopOrder: dto.stopOrder,
         arrivalOffsetMinutes: dto.arrivalOffsetMinutes,
         departureOffsetMinutes: dto.departureOffsetMinutes,
+        distanceFromOriginKm: dto.distanceFromOriginKm,
       },
       include: { station: true },
     });

@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsUUID, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
 
 export class RouteStationItemDto {
   @IsUUID('all', { message: 'Mã nhà ga (stationId) phải là UUID hợp lệ' })
@@ -16,4 +16,10 @@ export class RouteStationItemDto {
   @IsInt({ message: 'Thời gian đi lệch (phút) phải là số nguyên' })
   @Min(0, { message: 'Thời gian đi lệch không âm' })
   departureOffsetMinutes: number;
+
+  // Km từ ga đầu tuyến, dùng để tính giá theo chặng
+  @IsOptional()
+  @IsNumber({}, { message: 'Km từ ga đầu phải là số' })
+  @Min(0, { message: 'Km từ ga đầu không âm' })
+  distanceFromOriginKm?: number;
 }
