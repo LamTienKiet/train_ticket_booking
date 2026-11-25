@@ -510,9 +510,6 @@ export class BookingService {
     return detail;
   }
 
-  /**
-   * Lấy danh sách vé / đơn hàng của user đang đăng nhập
-   */
   /** Danh sách đơn cho admin: lọc trạng thái, tìm theo mã đơn / SĐT / email */
   async findAllAdmin(query: QueryAdminBookingDto) {
     const page = query.page ?? 1;
@@ -562,6 +559,9 @@ export class BookingService {
     };
   }
 
+  /**
+   * Lấy danh sách vé / đơn hàng của user đang đăng nhập
+   */
   async findMyBookings(userId: string) {
     // Cron chạy mỗi phút; gọi thêm ở đây để user không thấy đơn quá hạn trong khoảng chờ cron
     await this.expireStaleBookings(userId);
