@@ -7,6 +7,10 @@ import { bucketDaily, vnDate } from './stats';
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
+  listSeatTypes() {
+    return this.prisma.seatType.findMany({ select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } });
+  }
+
   async getStats(days: number, now = new Date()) {
     const since = new Date(`${vnDate(new Date(now.getTime() - (days - 1) * 86_400_000))}T00:00:00+07:00`);
     const todayStart = new Date(`${vnDate(now)}T00:00:00+07:00`);

@@ -40,3 +40,11 @@ describe('AdminService.getStats', () => {
     expect(res.dailyRevenue[29]).toEqual({ date: '2026-11-25', amount: 1800 });
   });
 });
+
+describe('AdminService.listSeatTypes', () => {
+  it('trả loại ghế sắp theo mã', async () => {
+    const db = { seatType: { findMany: jest.fn().mockResolvedValue([{ id: 's1', code: 'SOFT_SEAT', name: 'Ghế mềm' }]) } };
+    await expect(new AdminService(db as never).listSeatTypes()).resolves.toEqual([{ id: 's1', code: 'SOFT_SEAT', name: 'Ghế mềm' }]);
+    expect(db.seatType.findMany).toHaveBeenCalledWith({ select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } });
+  });
+});

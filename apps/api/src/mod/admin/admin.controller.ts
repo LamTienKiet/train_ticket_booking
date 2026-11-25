@@ -8,6 +8,11 @@ import { AdminService } from './admin.service';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  @Get('seat-types')
+  seatTypes() {
+    return this.adminService.listSeatTypes();
+  }
+
   @Get('stats')
   stats(@Query('days') days?: string) {
     // 7..90 ngày, mặc định 30
