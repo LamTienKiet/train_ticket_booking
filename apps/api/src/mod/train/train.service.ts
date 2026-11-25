@@ -171,8 +171,19 @@ export class TrainService {
     return this.prisma.train.update({ where: { id }, data: dto });
   }
 
+  /** Tàu đã chạy chuyến thì chỉ ngừng hoạt động; chưa có chuyến thì xóa (toa, ghế cascade) */
   async remove(id: string) {
-    await this.findOne(id);
-    return this.prisma.train.delete({ where: { id } });
+    const train = await this.prisma.train.findUnique({
+      where: { id },
+      include: { _count: { select: { trips: true } } },
+    });
+    if (!train) throw new NotFoundException(`Không tìm thấy đoàn tàu với id: ${id}`);
+
+    if (train._count.trips > 0) {
+      await this.prisma.train.update({ where: { id }, data: { status: 'INACTIVE' } });
+      return { deactivated: true, message: 'Tàu đã có chuyến nên đã chuyển sang ngừng hoạt động.' };
+    }
+    await this.prisma.train.delete({ where: { id } });
+    return { deleted: true };
   }
 }

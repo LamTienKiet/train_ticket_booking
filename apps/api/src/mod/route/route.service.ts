@@ -272,16 +272,20 @@ export class RouteService {
         data: { status: StatusActiveInactive.INACTIVE },
       });
       return {
+        deactivated: true,
         message: `Tuyến đường đang có ${route._count.trips} chuyến tàu liên kết. Đã chuyển trạng thái sang INACTIVE thay vì xóa vĩnh viễn.`,
         route: updated,
       };
     }
 
-    await this.prisma.route.delete({
-      where: { id },
+    // Bảng giá không cascade theo tuyến nên xóa trước (ga dừng cascade)
+    await this.prisma.$transaction(async (tx) => {
+      await tx.fareRule.deleteMany({ where: { routeId: id } });
+      await tx.route.delete({ where: { id } });
     });
 
     return {
+      deleted: true,
       message: `Đã xóa tuyến đường '${route.code} - ${route.name}' thành công.`,
       id,
     };

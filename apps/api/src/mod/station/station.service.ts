@@ -106,8 +106,19 @@ export class StationService {
     return this.prisma.station.update({ where: { id }, data: dto });
   }
 
+  /** Ga đã nằm trong tuyến/chuyến thì chỉ ngừng hoạt động, không xóa cứng */
   async remove(id: string) {
-    await this.findOne(id);
-    return this.prisma.station.delete({ where: { id } });
+    const station = await this.prisma.station.findUnique({
+      where: { id },
+      include: { _count: { select: { routeStations: true, tripStations: true } } },
+    });
+    if (!station) throw new NotFoundException(`Không tìm thấy nhà ga với ID: ${id}`);
+
+    if (station._count.routeStations + station._count.tripStations > 0) {
+      await this.prisma.station.update({ where: { id }, data: { status: 'INACTIVE' } });
+      return { deactivated: true, message: 'Ga đang được dùng trong tuyến/chuyến nên đã chuyển sang ngừng hoạt động.' };
+    }
+    await this.prisma.station.delete({ where: { id } });
+    return { deleted: true };
   }
 }

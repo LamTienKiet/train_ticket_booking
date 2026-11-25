@@ -766,8 +766,19 @@ export class TripService {
     return buildTripStations(departure, stops);
   }
 
+  /** Chuyến đã có đơn thì hủy chuyến thay vì xóa (giữ lịch sử vé); chưa có đơn thì xóa */
   async remove(id: string) {
-        await this.findOne(id);
-        return this.prisma.trip.delete({ where: { id } });
-      }
+    const trip = await this.prisma.trip.findUnique({
+      where: { id },
+      include: { _count: { select: { bookings: true } } },
+    });
+    if (!trip) throw new NotFoundException(`Không tìm thấy chuyến tàu với id: ${id}`);
+
+    if (trip._count.bookings > 0) {
+      await this.prisma.trip.update({ where: { id }, data: { status: 'CANCELLED' } });
+      return { cancelled: true, message: 'Chuyến đã có đơn đặt vé nên đã chuyển sang Đã hủy.' };
+    }
+    await this.prisma.trip.delete({ where: { id } });
+    return { deleted: true };
+  }
 }
