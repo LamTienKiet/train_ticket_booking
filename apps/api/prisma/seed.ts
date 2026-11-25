@@ -1,7 +1,6 @@
 import {
   PrismaClient,
   Role,
-  CoachType,
   TripStatus,
   PassengerType,
   BookingStatus,
@@ -11,6 +10,7 @@ import {
   TicketStatus,
   Station,
 } from '@prisma/client';
+import { CoachKind, coachTypeOf, seatLayout } from '../src/mod/train/coach-layout';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -120,36 +120,8 @@ async function main() {
   console.log('\n🚂 Tạo tàu hỏa...');
 
   // SOFT: toa ghế mềm 10 chỗ | K4: toa giường khoang 4 (8 giường) | K6: toa giường khoang 6 (12 giường)
-  type CoachKind = 'SOFT' | 'K4' | 'K6';
-  const seatsOf = (kind: CoachKind) => {
-    if (kind === 'SOFT') {
-      return [
-        ...['A1', 'A2', 'A3', 'A4', 'A5'].map((n) => ({ seatNumber: n, floorNumber: 1, position: 'WINDOW', seatTypeId: softSeat.id })),
-        ...['B1', 'B2', 'B3', 'B4', 'B5'].map((n) => ({ seatNumber: n, floorNumber: 1, position: 'AISLE', seatTypeId: softSeat.id })),
-      ];
-    }
-    if (kind === 'K4') {
-      return Array.from({ length: 8 }, (_, idx) => {
-        const i = idx + 1;
-        return {
-          seatNumber: `T${Math.ceil(i / 4)}-0${i}`,
-          floorNumber: i % 2 === 0 ? 2 : 1,
-          position: i <= 4 ? 'LOWER' : 'UPPER',
-          seatTypeId: sleeper4.id,
-        };
-      });
-    }
-    return Array.from({ length: 12 }, (_, idx) => {
-      const i = idx + 1;
-      const numInComp = ((i - 1) % 6) + 1;
-      return {
-        seatNumber: `C${Math.ceil(i / 6)}-${String(numInComp).padStart(2, '0')}`,
-        floorNumber: numInComp <= 2 ? 1 : numInComp <= 4 ? 2 : 3,
-        position: numInComp % 2 === 0 ? 'UPPER' : 'LOWER',
-        seatTypeId: sleeper6.id,
-      };
-    });
-  };
+  const seatTypeIdOf = { SOFT: softSeat.id, K4: sleeper4.id, K6: sleeper6.id } as const;
+  const seatsOf = (kind: CoachKind) => seatLayout(kind).map((s) => ({ ...s, seatTypeId: seatTypeIdOf[kind] }));
 
   const trainDefs: { code: string; name: string; coaches: CoachKind[] }[] = [
     { code: 'SE1', name: 'Tàu Thống Nhất SE1', coaches: ['SOFT', 'K4', 'K6'] },
@@ -181,7 +153,7 @@ async function main() {
         create: {
           trainId: train.id,
           coachNumber: i + 1,
-          coachType: kind === 'SOFT' ? CoachType.SEATING : CoachType.SLEEPER,
+          coachType: coachTypeOf(kind),
           capacity: seats.length,
         },
       });
