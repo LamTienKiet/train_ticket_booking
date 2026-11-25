@@ -133,3 +133,13 @@ function FormBody({ title, fields, initial, submitLabel = "Lưu", onClose, onSub
     </div>
   );
 }
+
+/** Bỏ ô để trống (API coi là không gửi) và đổi các field số sang number */
+export function toPayload(values: FormValues, numberFields: string[] = []) {
+  const out: Record<string, string | number> = {};
+  for (const [k, v] of Object.entries(values)) {
+    if (v.trim() === "") continue;
+    out[k] = numberFields.includes(k) ? Number(v) : v.trim();
+  }
+  return out;
+}
