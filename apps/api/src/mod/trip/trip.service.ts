@@ -8,7 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SearchTripDto } from './dto/search-trip.dto';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
-import { BookingStatus } from '@prisma/client';
+import { BookingSeatStatus, BookingStatus, Prisma } from '@prisma/client';
+import { QueryAdminTripDto } from './dto/query-admin-trip.dto';
 import { buildTripStations } from './trip-schedule';
 import { loadTripSegment, overlapsSegment, segmentPrice, TripSegment } from './segment';
 
@@ -585,6 +586,67 @@ export class TripService {
       },
       include: { tripStations: { orderBy: { stopOrder: 'asc' } } },
     });
+  }
+
+  /** Danh sách chuyến cho admin: mọi trạng thái, kèm số ghế đã bán / tổng ghế */
+  async findAllAdmin(query: QueryAdminTripDto) {
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 20, 100);
+    const where: Prisma.TripWhereInput = {
+      ...(query.status && { status: query.status }),
+      ...((query.from || query.to) && {
+        departureTime: {
+          ...(query.from && { gte: new Date(`${query.from}T00:00:00+07:00`) }),
+          ...(query.to && { lte: new Date(`${query.to}T23:59:59.999+07:00`) }),
+        },
+      }),
+    };
+
+    const [trips, total] = await Promise.all([
+      this.prisma.trip.findMany({
+        where,
+        include: {
+          route: { select: { id: true, code: true, name: true } },
+          train: { select: { id: true, code: true, coaches: { select: { capacity: true } } } },
+        },
+        orderBy: { departureTime: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.trip.count({ where }),
+    ]);
+
+    // Đếm ghế (không phân chặng) của các đơn còn giữ/đã xác nhận
+    const bookings = await this.prisma.booking.findMany({
+      where: { tripId: { in: trips.map((t) => t.id) } },
+      select: {
+        tripId: true,
+        _count: {
+          select: {
+            bookingSeats: { where: { status: { in: [BookingSeatStatus.HELD, BookingSeatStatus.CONFIRMED] } } },
+          },
+        },
+      },
+    });
+    const sold = new Map<string, number>();
+    for (const b of bookings) sold.set(b.tripId, (sold.get(b.tripId) ?? 0) + b._count.bookingSeats);
+
+    return {
+      items: trips.map(({ train, ...t }) => ({
+        id: t.id,
+        tripCode: t.tripCode,
+        status: t.status,
+        departureTime: t.departureTime,
+        arrivalTime: t.arrivalTime,
+        route: t.route,
+        train: { id: train.id, code: train.code },
+        soldSeats: sold.get(t.id) ?? 0,
+        totalSeats: train.coaches.reduce((sum, c) => sum + c.capacity, 0),
+      })),
+      total,
+      page,
+      limit,
+    };
   }
 
   /** Danh sách chuyến sắp chạy (cả tuyến), cùng dạng dữ liệu với search để web dùng chung */

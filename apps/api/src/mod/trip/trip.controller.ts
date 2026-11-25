@@ -14,6 +14,7 @@ import { TripService } from './trip.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { SearchTripDto } from './dto/search-trip.dto';
+import { QueryAdminTripDto } from './dto/query-admin-trip.dto';
 
 @Controller('trips')
 export class TripController {
@@ -22,6 +23,12 @@ export class TripController {
   @Get('search')
   search(@Query() searchDto: SearchTripDto) {
     return this.tripService.search(searchDto);
+  }
+
+  @Roles(Role.ADMIN)
+  @Get('admin')
+  findAllAdmin(@Query() query: QueryAdminTripDto) {
+    return this.tripService.findAllAdmin(query);
   }
 
   @Get(':id/seats')
