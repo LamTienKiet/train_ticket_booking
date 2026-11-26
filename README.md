@@ -5,7 +5,7 @@ Monorepo gồm API NestJS + Prisma (MySQL) tại `apps/api` và web Next.js tạ
 ## Trang quản trị
 
 Đường dẫn: `/admin` — chỉ tài khoản role `ADMIN` vào được (tài khoản mẫu từ seed: `admin@train.com`).
-Khi đã đăng nhập bằng ADMIN, thanh điều hướng có thêm nút **Quản trị**.
+Đăng nhập bằng ADMIN sẽ vào thẳng trang quản trị; tài khoản ADMIN mở trang khách cũng được chuyển về `/admin`.
 
 | Trang | Việc làm được |
 |---|---|

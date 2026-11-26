@@ -77,12 +77,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await authService.login(formSignIn, formSignIn.remember);
+      const { role } = await authService.login(formSignIn, formSignIn.remember);
 
       setFormSuccess("Đăng nhập thành công! Đang chuyển hướng...");
 
-      // Quay về trang trước khi bị yêu cầu đăng nhập (chỉ nhận đường dẫn nội bộ), mặc định trang chủ
-      const target = safeNextPath(new URLSearchParams(window.location.search).get("next"), window.location.origin);
+      // Admin vào thẳng trang quản trị; khách quay về trang trước khi bị yêu cầu đăng nhập (chỉ nhận đường dẫn nội bộ)
+      const target =
+        role === "ADMIN"
+          ? "/admin"
+          : safeNextPath(new URLSearchParams(window.location.search).get("next"), window.location.origin);
       setTimeout(() => {
         router.push(target);
         router.refresh();

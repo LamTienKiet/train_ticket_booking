@@ -70,9 +70,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <strong>{user.fullName || user.username}</strong>
             <span>Quản trị viên</span>
           </div>
-          <Link href="/" className={styles.backHome}>
-            ← Về trang khách
-          </Link>
           <button
             type="button"
             className={styles.logoutBtn}

@@ -18,6 +18,9 @@ export const authService = {
     });
 
     const data = response.data;
+    // Xóa phiên cũ ở cả 2 nơi: getCurrentUser/getAccessToken đọc localStorage trước,
+    // nên phiên "ghi nhớ" cũ sẽ đè lên phiên mới lưu ở sessionStorage
+    authService.logout();
     const storage = remember ? localStorage : sessionStorage;
 
     // Lưu token

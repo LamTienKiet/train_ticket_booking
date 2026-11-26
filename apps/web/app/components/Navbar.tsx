@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import styles from "./Navbar.module.css";
 import { authService } from "../services/auth.service";
@@ -9,22 +9,23 @@ import { AuthUser } from "../types/auth.api";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    // Lấy thông tin user hiện tại nếu có
-    setCurrentUser(authService.getCurrentUser());
-
-    // Lắng nghe sự kiện auth thay đổi (đăng nhập / đăng xuất)
+    // Admin không dùng trang khách: đang đăng nhập ADMIN thì đưa thẳng về trang quản trị
     const handleAuthChange = () => {
-      setCurrentUser(authService.getCurrentUser());
+      const user = authService.getCurrentUser();
+      if (user?.role === "ADMIN") router.replace("/admin");
+      setCurrentUser(user);
     };
+    handleAuthChange();
 
     window.addEventListener("auth-changed", handleAuthChange);
     return () => {
       window.removeEventListener("auth-changed", handleAuthChange);
     };
-  }, []);
+  }, [router]);
 
   const handleLogout = () => {
     authService.logout();
@@ -33,6 +34,8 @@ export default function Navbar() {
 
   const isTripsActive = pathname === "/trips" || pathname.startsWith("/trips/");
   const isTicketsActive = pathname.startsWith("/tickets");
+  const isPromotionsActive = pathname.startsWith("/promotions");
+  const isGuideActive = pathname.startsWith("/guide");
 
   return (
     <header className={styles.header}>
@@ -74,10 +77,16 @@ export default function Navbar() {
           >
             Tra Cứu Vé
           </Link>
-          <Link href="#" className={styles.navItem}>
+          <Link
+            href="/promotions"
+            className={`${styles.navItem} ${isPromotionsActive ? styles.activeNav : ""}`}
+          >
             Khuyến Mãi
           </Link>
-          <Link href="#" className={styles.navItem}>
+          <Link
+            href="/guide"
+            className={`${styles.navItem} ${isGuideActive ? styles.activeNav : ""}`}
+          >
             Hướng Dẫn
           </Link>
         </nav>
@@ -96,11 +105,6 @@ export default function Navbar() {
                 </span>
               </div>
 
-              {currentUser.role === "ADMIN" && (
-                <Link href="/admin" className={styles.myTicketsBtn}>
-                  Quản trị
-                </Link>
-              )}
 
               <Link href="/tickets" className={styles.myTicketsBtn}>
                 Vé của tôi
