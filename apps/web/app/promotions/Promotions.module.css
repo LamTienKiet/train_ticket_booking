@@ -1,0 +1,510 @@
+/* apps/web/app/promotions/Promotions.module.css */
+
+.main {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: inherit;
+}
+
+/* HERO SECTION */
+.heroSection {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #1d4ed8 100%);
+  color: #ffffff;
+  padding: 64px 24px 56px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroSection::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.heroContainer {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+.heroTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #93c5fd;
+  margin-bottom: 18px;
+}
+
+.heroTitle {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0 0 16px;
+  letter-spacing: -0.5px;
+}
+
+.heroSubtitle {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  max-width: 680px;
+  margin: 0 auto 28px;
+}
+
+/* FILTER TABS */
+.filterContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.filterBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterBtn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.filterBtnActive {
+  background: #ffffff;
+  color: #1e3a8a;
+  border-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* CONTAINER CHUNG */
+.contentContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* SECTION HEADERS */
+.sectionHeader {
+  margin-bottom: 28px;
+}
+
+.sectionTitleGroup {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 12px;
+}
+
+.sectionTitle {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sectionSubtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 8px 0 0;
+}
+
+/* COUPONS GRID */
+.couponsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+  margin-bottom: 56px;
+}
+
+.couponCard {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.couponCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.couponTop {
+  padding: 20px 22px 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-bottom: 1px dashed #cbd5e1;
+  position: relative;
+}
+
+/* Răng cưa vé tàu 2 bên mép */
+.couponTop::before,
+.couponTop::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  width: 18px;
+  height: 18px;
+  background-color: #f8fafc;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+}
+
+.couponTop::before {
+  left: -10px;
+}
+
+.couponTop::after {
+  right: -10px;
+}
+
+.badgeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.categoryBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.badgeStudent {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badgeFamily {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.badgePayment {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badgeSeason {
+  background: #fae8ff;
+  color: #86198f;
+}
+
+.badgeGeneral {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.discountBadge {
+  font-size: 14px;
+  font-weight: 800;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.couponTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.couponDesc {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.couponBody {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.metaList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.metaIcon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.couponActionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.codeBox {
+  flex: 1;
+  background: #f1f5f9;
+  border: 1px dashed #94a3b8;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.codeText {
+  font-family: monospace;
+  font-size: 15px;
+  font-weight: 800;
+  color: #1e3a8a;
+  letter-spacing: 1px;
+}
+
+.copyBtn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.copyBtn:hover {
+  background: #f8fafc;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+.copyBtnCopied {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border-color: #16a34a !important;
+}
+
+.applyLink {
+  background: #1d4ed8;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.applyLink:hover {
+  background: #1e40af;
+}
+
+/* BẢNG CHÍNH SÁCH ĐỐI TƯỢNG (POLICY SECTION) */
+.policySection {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 32px 36px;
+  margin-bottom: 56px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.policyTableWrapper {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.policyTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.policyTable th {
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 700;
+  padding: 14px 18px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.policyTable td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #475569;
+}
+
+.policyTable tr:last-child td {
+  border-bottom: none;
+}
+
+.discountHighlight {
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.policyTagAuto {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* HOW TO USE GUIDE CARDS */
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+  margin-bottom: 56px;
+}
+
+.stepCard {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  position: relative;
+}
+
+.stepNumber {
+  width: 36px;
+  height: 36px;
+  background: #1d4ed8;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.stepTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.stepDesc {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* CTA BANNER */
+.ctaBanner {
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.ctaTitle {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.ctaDesc {
+  color: #cbd5e1;
+  font-size: 15px;
+  max-width: 600px;
+  margin: 0;
+}
+
+.ctaBtn {
+  background: #f59e0b;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  padding: 12px 28px;
+  border-radius: 8px;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+.ctaBtn:hover {
+  background: #d97706;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 28px;
+  }
+  .couponsGrid {
+    grid-template-columns: 1fr;
+  }
+  .stepsGrid {
+    grid-template-columns: 1fr;
+  }
+  .policySection {
+    padding: 24px 18px;
+  }
+}
