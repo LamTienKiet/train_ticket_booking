@@ -1,7 +1,7 @@
 import type { Field } from "../_components/FormModal";
 
 export const TRAIN_FIELDS: Field[] = [
-  { name: "code", label: "Mã tàu", type: "text", required: true, placeholder: "VD: SE7" },
+  { name: "code", label: "Mác tàu", type: "text", required: true, placeholder: "VD: SE7" },
   { name: "name", label: "Tên tàu", type: "text", required: true, placeholder: "VD: Tàu Thống Nhất SE7" },
   {
     name: "status",

@@ -19,7 +19,7 @@ export default function TrainsPage() {
   const { rows, loading, error, reload } = useAdminList<Train>("/trains", { search });
 
   const columns: Column<Train>[] = [
-    { key: "code", label: "Mã tàu", width: "100px", render: (t) => <span className={styles.mono}>{t.code}</span> },
+    { key: "code", label: "Mác tàu", width: "100px", render: (t) => <span className={styles.mono}>{t.code}</span> },
     { key: "name", label: "Tên tàu", render: (t) => <span className={styles.cellMain}>{t.name}</span> },
     {
       key: "totalCoaches",
@@ -37,7 +37,7 @@ export default function TrainsPage() {
       <div className={styles.pageHead}>
         <div>
           <h1 className={styles.pageTitle}>Tàu &amp; toa</h1>
-          <p className={styles.pageSub}>Bấm vào một tàu để thêm hoặc xóa toa.</p>
+          <p className={styles.pageSub}>Mỗi mác tàu (VD: SE1) dùng được cho chuyến của nhiều ngày. Bấm vào một tàu để thêm hoặc xóa toa.</p>
         </div>
         <button type="button" className={styles.btnPrimary} onClick={() => setCreating(true)}>
           + Thêm tàu

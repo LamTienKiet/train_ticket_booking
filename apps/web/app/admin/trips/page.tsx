@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { api } from "../../utils/axiosClient";
 import { fmtDate, fmtTime } from "../../utils/format";
@@ -64,7 +63,7 @@ export default function TripsPage() {
     },
     {
       name: "trainId",
-      label: "Tàu",
+      label: "Mác tàu",
       type: "select",
       required: true,
       options: trains.rows.map((t) => ({
@@ -145,9 +144,6 @@ export default function TripsPage() {
       align: "right",
       render: (t) => (
         <div className={styles.actions}>
-          <Link href={`/trips/seats?tripId=${t.id}`} className={styles.btnSm} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }} target="_blank">
-            Xem như khách
-          </Link>
           <button type="button" className={styles.btnSm} onClick={() => setEditing(t)}>
             Sửa
           </button>

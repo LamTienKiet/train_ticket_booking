@@ -562,3 +562,108 @@
   font-size: 36px;
   margin-bottom: 8px;
 }
+
+.runDate {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c2410c;
+}
+
+/* LỌC / SẮP XẾP / PHÂN TRANG */
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.chipGroup,
+.filterRight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.chipGroup {
+  gap: 8px;
+}
+
+.chip,
+.pagerBtn {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.chip:hover,
+.pagerBtn:hover:not(:disabled) {
+  border-color: #ea580c;
+  color: #c2410c;
+}
+
+.chipActive,
+.chipActive:hover,
+.pagerActive,
+.pagerActive:hover:not(:disabled) {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #ffffff;
+}
+
+.checkLabel,
+.sortLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.checkLabel input {
+  accent-color: #ea580c;
+}
+
+.sortLabel select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 13px;
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.pagerBtn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+}
+
+.pagerBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

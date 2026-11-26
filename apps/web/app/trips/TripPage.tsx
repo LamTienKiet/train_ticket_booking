@@ -38,6 +38,8 @@ const toTripRow = (t: SearchTrip) => {
   return {
     id: t.id,
     train: t.train,
+    // Ngày tàu rời ga đầu tuyến: cùng mác tàu chạy hằng ngày, ngày này phân biệt các chuyến
+    runDate: fmtDate(t.departureTime),
     route: t.route,
     originStation: t.originStation,
     destinationStation: t.destinationStation,
@@ -45,12 +47,31 @@ const toTripRow = (t: SearchTrip) => {
     departureDate: fmtDate(dep),
     arrivalTime: fmtTime(arr),
     arrivalDate: fmtDate(arr),
+    departureTs: new Date(dep).getTime(),
+    depHour: Number(fmtTime(dep).slice(0, 2)),
+    durationMins: mins,
     duration: `${Math.floor(mins / 60)}h ${mins % 60}m`,
     minPrice: prices.length ? Math.min(...prices) : 0,
     availableSeats: t.totalAvailableSeats,
   };
 };
 type TripRow = ReturnType<typeof toTripRow>;
+
+// Khung giờ khởi hành theo giờ Việt Nam: [từ giờ, đến trước giờ)
+const TIME_SLOTS = [
+  { key: "", label: "Mọi giờ", range: [0, 24] },
+  { key: "morning", label: "Sáng 5h–12h", range: [5, 12] },
+  { key: "afternoon", label: "Chiều 12h–18h", range: [12, 18] },
+  { key: "evening", label: "Tối 18h–24h", range: [18, 24] },
+  { key: "night", label: "Đêm 0h–5h", range: [0, 5] },
+] as const;
+const SORTS = {
+  departure: { label: "Giờ đi sớm nhất", cmp: (a: TripRow, b: TripRow) => a.departureTs - b.departureTs },
+  price: { label: "Giá thấp nhất", cmp: (a: TripRow, b: TripRow) => a.minPrice - b.minPrice },
+  duration: { label: "Đi nhanh nhất", cmp: (a: TripRow, b: TripRow) => a.durationMins - b.durationMins },
+};
+type SortKey = keyof typeof SORTS;
+const PAGE_SIZE = 10;
 
 export default function TripPage() {
   return (
@@ -79,6 +100,12 @@ function TripContent() {
   const [trips, setTrips] = useState<TripRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [listError, setListError] = useState("");
+
+  // Lọc / sắp xếp / phân trang trên trình duyệt: API trả toàn bộ chuyến của chặng hoặc sắp chạy
+  const [slot, setSlot] = useState("");
+  const [availableOnly, setAvailableOnly] = useState(false);
+  const [sort, setSort] = useState<SortKey>("departure");
+  const [page, setPage] = useState(1);
 
   // Form tìm kiếm ngay trên trang, điền sẵn theo URL
   const [formFrom, setFormFrom] = useState(from ?? "");
@@ -124,6 +151,7 @@ function TripContent() {
     if (formFrom === formTo) return setFormError("Ga đi và ga đến không được trùng nhau.");
     setFormError("");
     setIsLoading(true);
+    setPage(1);
     router.push(`/trips?${new URLSearchParams({ from: formFrom, to: formTo, date: formDate })}`);
   };
 
@@ -142,6 +170,22 @@ function TripContent() {
       .then(({ data }) => setStopsByTrip((m) => ({ ...m, [tripId]: data.stops })))
       .catch((e) => setStopsError(apiErrorMessage(e, "Không tải được lịch trình.")));
   };
+
+  const [slotFrom, slotTo] = TIME_SLOTS.find((s) => s.key === slot)!.range;
+  const filtered = trips
+    .filter((t) => t.depHour >= slotFrom && t.depHour < slotTo && (!availableOnly || t.availableSeats > 0))
+    .sort(SORTS[sort].cmp);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageTrips = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const isFiltered = slot !== "" || availableOnly;
+  // Đổi bộ lọc thì quay về trang 1
+  const withReset =
+    <T,>(set: (v: T) => void) =>
+    (v: T) => {
+      set(v);
+      setPage(1);
+    };
 
   const stationName = (id: string | null) => stations.find((s) => s.id === id)?.name ?? "";
   const heading = isSearch
@@ -221,7 +265,11 @@ function TripContent() {
       <div className={styles.container}>
         <div className={styles.trainListHeader}>
           <h2 className={styles.trainListTitle}>
-            {isLoading ? "Đang tải..." : `${trips.length} chuyến tàu`}
+            {isLoading
+              ? "Đang tải..."
+              : isFiltered
+                ? `${filtered.length} / ${trips.length} chuyến tàu`
+                : `${trips.length} chuyến tàu`}
           </h2>
           {isSearch && (
             <Link href="/trips" className={styles.clearSearch}>
@@ -230,11 +278,49 @@ function TripContent() {
           )}
         </div>
 
+        {!isLoading && trips.length > 0 && (
+          <div className={styles.filterBar}>
+            <div className={styles.chipGroup} role="group" aria-label="Lọc theo giờ khởi hành">
+              {TIME_SLOTS.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  aria-pressed={slot === s.key}
+                  className={`${styles.chip} ${slot === s.key ? styles.chipActive : ""}`}
+                  onClick={() => withReset(setSlot)(s.key)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <div className={styles.filterRight}>
+              <label className={styles.checkLabel}>
+                <input
+                  type="checkbox"
+                  checked={availableOnly}
+                  onChange={(e) => withReset(setAvailableOnly)(e.target.checked)}
+                />
+                Chỉ chuyến còn chỗ
+              </label>
+              <label className={styles.sortLabel}>
+                Sắp xếp
+                <select value={sort} onChange={(e) => withReset(setSort)(e.target.value as SortKey)}>
+                  {(Object.keys(SORTS) as SortKey[]).map((k) => (
+                    <option key={k} value={k}>
+                      {SORTS[k].label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+        )}
+
         <div className={styles.trainsList}>
           {isLoading ? (
             [0, 1, 2].map((i) => <div key={i} className={styles.skeletonCard} aria-hidden />)
-          ) : trips.length > 0 ? (
-            trips.map((trip) => {
+          ) : pageTrips.length > 0 ? (
+            pageTrips.map((trip) => {
               const isSoldOut = trip.availableSeats === 0;
               const seatHref = isSearch
                 ? `/trips/seats?tripId=${trip.id}&from=${from}&to=${to}`
@@ -251,6 +337,7 @@ function TripContent() {
                     <div className={styles.trainIdentity}>
                       <span className={styles.trainCode}>{trip.train.code}</span>
                       <span className={styles.trainName}>{trip.train.name}</span>
+                      <span className={styles.runDate}>Chuyến ngày {trip.runDate}</span>
                       <button
                         type="button"
                         className={styles.toggleStopsBtn}
@@ -356,13 +443,47 @@ function TripContent() {
               </div>
               <p>
                 {listError ||
-                  (isSearch
+                  (trips.length > 0
+                    ? "Không có chuyến nào khớp bộ lọc. Thử chọn khung giờ khác."
+                    : isSearch
                     ? "Không có chuyến tàu nào cho chặng và ngày đã chọn. Thử đổi ngày hoặc ga khác."
                     : "Hiện chưa có chuyến tàu nào sắp khởi hành.")}
               </p>
             </div>
           )}
         </div>
+
+        {!isLoading && totalPages > 1 && (
+          <nav className={styles.pager} aria-label="Phân trang chuyến tàu">
+            <button
+              type="button"
+              className={styles.pagerBtn}
+              disabled={currentPage === 1}
+              onClick={() => setPage(currentPage - 1)}
+            >
+              ‹ Trước
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                aria-current={n === currentPage ? "page" : undefined}
+                className={`${styles.pagerBtn} ${n === currentPage ? styles.pagerActive : ""}`}
+                onClick={() => setPage(n)}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              type="button"
+              className={styles.pagerBtn}
+              disabled={currentPage === totalPages}
+              onClick={() => setPage(currentPage + 1)}
+            >
+              Sau ›
+            </button>
+          </nav>
+        )}
       </div>
     </main>
   );
