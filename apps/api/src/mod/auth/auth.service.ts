@@ -8,6 +8,8 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { Role } from '@prisma/client';
@@ -254,5 +256,109 @@ export class AuthService {
       email: newAccount.email,
       phone: newAccount.user!.phone ?? '',
     };
+  }
+
+  async getProfile(userId: string) {
+    const account = await this.prismaService.account.findFirst({
+      where: {
+        OR: [{ id: userId }, { user: { id: userId } }],
+      },
+      include: {
+        user: {
+          include: {
+            _count: {
+              select: {
+                bookings: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!account || !account.user) {
+      throw new UnauthorizedException('Không tìm thấy thông tin tài khoản');
+    }
+
+    return {
+      id: account.user.id,
+      accountId: account.id,
+      username: account.username,
+      email: account.email,
+      role: account.role,
+      status: account.status,
+      fullName: account.user.fullName,
+      phone: account.user.phone,
+      avatar: account.user.avatar,
+      birthday: account.user.birthday,
+      gender: account.user.gender,
+      address: account.user.address,
+      createdAt: account.createdAt,
+      bookingsCount: account.user._count?.bookings ?? 0,
+    };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const account = await this.prismaService.account.findFirst({
+      where: {
+        OR: [{ id: userId }, { user: { id: userId } }],
+      },
+      include: { user: true },
+    });
+
+    if (!account || !account.user) {
+      throw new UnauthorizedException('Không tìm thấy thông tin người dùng');
+    }
+
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: account.user.id },
+      data: {
+        fullName: dto.fullName !== undefined ? dto.fullName?.trim() || null : undefined,
+        phone: dto.phone !== undefined ? dto.phone?.trim() || null : undefined,
+        birthday: dto.birthday !== undefined ? (dto.birthday ? new Date(dto.birthday) : null) : undefined,
+        gender: dto.gender !== undefined ? dto.gender || null : undefined,
+        address: dto.address !== undefined ? dto.address?.trim() || null : undefined,
+        avatar: dto.avatar !== undefined ? dto.avatar || null : undefined,
+      },
+    });
+
+    return {
+      id: updatedUser.id,
+      accountId: account.id,
+      username: account.username,
+      email: account.email,
+      role: account.role,
+      fullName: updatedUser.fullName,
+      phone: updatedUser.phone,
+      avatar: updatedUser.avatar,
+      birthday: updatedUser.birthday,
+      gender: updatedUser.gender,
+      address: updatedUser.address,
+    };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const account = await this.prismaService.account.findFirst({
+      where: {
+        OR: [{ id: userId }, { user: { id: userId } }],
+      },
+    });
+
+    if (!account) {
+      throw new UnauthorizedException('Không tìm thấy tài khoản');
+    }
+
+    const isMatch = await bcrypt.compare(dto.currentPassword, account.passwordHash);
+    if (!isMatch) {
+      throw new BadRequestException('Mật khẩu hiện tại không chính xác');
+    }
+
+    const newHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prismaService.account.update({
+      where: { id: account.id },
+      data: { passwordHash: newHash },
+    });
+
+    return { message: 'Đổi mật khẩu thành công' };
   }
 }

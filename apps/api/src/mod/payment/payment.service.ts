@@ -4,9 +4,11 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../notification/mail.service';
 import { TicketService } from '../ticket/ticket.service';
 import { ConfirmPaymentDto } from './dto/confirm-payment.dto';
 import { assertBookingAccess, JwtUser } from '../booking/booking.service';
@@ -22,6 +24,7 @@ export class PaymentService {
     private readonly prisma: PrismaService,
     private readonly ticketService: TicketService,
     private readonly config: ConfigService,
+    @Optional() private readonly mail?: MailService,
   ) {}
 
   /**
@@ -112,6 +115,7 @@ export class PaymentService {
           data: { status: BookingSeatStatus.CANCELLED },
         });
       });
+      if (booking.status === BookingStatus.PENDING) void this.mail?.sendBookingEmail(booking.id, 'EXPIRED');
 
       throw new BadRequestException(
         'Thời gian giữ chỗ (10 phút) đã hết hạn. Ghế đã được giải phóng, vui lòng đặt lại.',
@@ -160,6 +164,7 @@ export class PaymentService {
       // 4. Sinh vé điện tử và mã QR
       await this.ticketService.issueTicketsForBooking(tx, booking.id);
     });
+    void this.mail?.sendBookingEmail(booking.id, 'CONFIRMED');
 
     // Trả về đơn hàng hoàn chỉnh với các vé đã xuất
     return this.prisma.booking.findUnique({

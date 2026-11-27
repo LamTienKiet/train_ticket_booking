@@ -95,16 +95,21 @@ export default function Navbar() {
         <div className={styles.authGroup}>
           {currentUser ? (
             <div className={styles.userProfile}>
-              <div className={styles.userAvatar}>
-                {(currentUser.fullName || currentUser.username || "U")[0].toUpperCase()}
-              </div>
-              <div className={styles.userInfo}>
-                <span className={styles.userGreeting}>Xin chào,</span>
-                <span className={styles.userName}>
-                  {currentUser.fullName || currentUser.username}
-                </span>
-              </div>
+              <Link href="/profile" className={styles.profileLink} title="Hồ sơ tài khoản">
+                <div className={styles.userAvatar}>
+                  {(currentUser.fullName || currentUser.username || "U")[0].toUpperCase()}
+                </div>
+                <div className={styles.userInfo}>
+                  <span className={styles.userGreeting}>Xin chào,</span>
+                  <span className={styles.userName}>
+                    {currentUser.fullName || currentUser.username}
+                  </span>
+                </div>
+              </Link>
 
+              <Link href="/profile" className={styles.myTicketsBtn} title="Hồ sơ cá nhân">
+                Hồ sơ
+              </Link>
 
               <Link href="/tickets" className={styles.myTicketsBtn}>
                 Vé của tôi

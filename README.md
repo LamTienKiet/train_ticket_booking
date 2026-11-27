@@ -2,6 +2,20 @@
 
 Monorepo gồm API NestJS + Prisma (MySQL) tại `apps/api` và web Next.js tại `apps/web`.
 
+## Email thông báo cho khách
+
+API gửi email (qua Gmail) tới **email liên hệ của đơn** khi:
+
+| Sự kiện | Email |
+|---|---|
+| Thanh toán xong | Vé điện tử: hành khách, hành trình, toa/ghế, giờ đi, tổng tiền |
+| Khách hoặc admin hủy đơn | Đơn đã hủy, kèm số tiền hoàn nếu có |
+| Hết thời gian giữ chỗ | Đơn đã hết hạn |
+| Admin hủy chuyến | Báo cho mọi đơn đang giữ chỗ / đã thanh toán của chuyến |
+
+Cấu hình trong `apps/api/.env`: `MAIL_USER` (địa chỉ Gmail), `MAIL_PASS` (mật khẩu ứng dụng 16 ký tự của Google, không phải mật khẩu Gmail),
+tùy chọn `MAIL_FROM`, `WEB_URL`. Không cấu hình thì API vẫn chạy bình thường, chỉ không gửi mail; lỗi gửi mail chỉ ghi log, không ảnh hưởng việc đặt/hủy vé.
+
 ## Trang quản trị
 
 Đường dẫn: `/admin` — chỉ tài khoản role `ADMIN` vào được (tài khoản mẫu từ seed: `admin@train.com`).

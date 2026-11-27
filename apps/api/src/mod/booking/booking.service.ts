@@ -5,9 +5,11 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../notification/mail.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { QueryAdminBookingDto } from './dto/query-admin-booking.dto';
 import {
@@ -77,7 +79,10 @@ export function assertBookingAccess(
 export class BookingService {
   private readonly logger = new Logger(BookingService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly mail?: MailService,
+  ) {}
 
   /** Cron: mỗi phút chuyển đơn PENDING quá hạn giữ chỗ sang EXPIRED và nhả ghế */
   @Cron(CronExpression.EVERY_MINUTE, { name: 'expire-bookings' })
@@ -97,7 +102,7 @@ export class BookingService {
    */
   async expireStaleBookings(userId?: string): Promise<number> {
     const now = new Date();
-    return this.prisma.$transaction(async (tx) => {
+    const { count, ids } = await this.prisma.$transaction(async (tx) => {
       const stale = await tx.booking.findMany({
         where: {
           ...(userId ? { userId } : {}),
@@ -107,7 +112,7 @@ export class BookingService {
         select: { id: true },
         take: 500, // giới hạn mỗi lượt; phần còn lại xử lý ở phút sau
       });
-      if (stale.length === 0) return 0;
+      if (stale.length === 0) return { count: 0, ids: [] as string[] };
       const ids = stale.map((b) => b.id);
 
       // Điều kiện status PENDING lặp lại: nếu thanh toán vừa xác nhận xong thì không đụng vào
@@ -131,8 +136,24 @@ export class BookingService {
         },
         data: { status: PaymentStatus.FAILED },
       });
-      return count;
+      return { count, ids };
     });
+    if (count > 0) void this.notifyExpired(ids);
+    return count;
+  }
+
+  /** Email báo hết hạn cho các đơn trong ids thực sự đã EXPIRED (đơn vừa thanh toán giữa chừng thì bỏ qua) */
+  private async notifyExpired(ids: string[]) {
+    if (!this.mail) return;
+    try {
+      const expired = await this.prisma.booking.findMany({
+        where: { id: { in: ids }, status: BookingStatus.EXPIRED },
+        select: { id: true },
+      });
+      for (const { id } of expired) await this.mail.sendBookingEmail(id, 'EXPIRED');
+    } catch (err) {
+      this.logger.error('Gửi email hết hạn thất bại', err as Error);
+    }
   }
 
   /**
@@ -464,6 +485,7 @@ export class BookingService {
           data: { status: BookingSeatStatus.CANCELLED },
         });
       });
+      void this.mail?.sendBookingEmail(booking.id, 'EXPIRED');
     }
 
     const detail = await this.prisma.booking.findUniqueOrThrow({
@@ -647,7 +669,7 @@ export class BookingService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const now = new Date();
 
       // Chỉ hủy nếu trạng thái chưa bị request khác đổi: chặn hủy 2 lần => hoàn tiền 2 lần
@@ -711,6 +733,8 @@ export class BookingService {
         status: updatedBooking.status,
       };
     });
+    void this.mail?.sendBookingEmail(booking.id, 'CANCELLED');
+    return result;
   }
 
   /**

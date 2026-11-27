@@ -57,3 +57,34 @@ export interface AuthUser {
   phone: string | null;
   email: string;
 }
+
+export interface UserProfile {
+  id: string;
+  accountId: string;
+  username: string | null;
+  email: string;
+  role: string;
+  status: string;
+  fullName: string | null;
+  phone: string | null;
+  avatar: string | null;
+  birthday: string | null;
+  gender: string | null;
+  address: string | null;
+  createdAt: string;
+  bookingsCount: number;
+}
+
+export interface UpdateProfileRequest {
+  fullName?: string;
+  phone?: string;
+  birthday?: string;
+  gender?: string;
+  address?: string;
+  avatar?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}

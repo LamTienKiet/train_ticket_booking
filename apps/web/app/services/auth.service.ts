@@ -5,6 +5,9 @@ import {
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
+  UserProfile,
+  UpdateProfileRequest,
+  ChangePasswordRequest,
 } from "../types/auth.api";
 
 export const authService = {
@@ -113,6 +116,47 @@ export const authService = {
    */
   isAuthenticated(): boolean {
     return !!this.getAccessToken();
+  },
+
+  /**
+   * Lấy thông tin hồ sơ người dùng đầy đủ từ server
+   */
+  async getProfile(): Promise<UserProfile> {
+    const response = await api.get<UserProfile>("/auth/me");
+    return response.data;
+  },
+
+  /**
+   * Cập nhật thông tin hồ sơ cá nhân
+   */
+  async updateProfile(data: UpdateProfileRequest): Promise<UserProfile> {
+    const response = await api.patch<UserProfile>("/auth/profile", data);
+    const updated = response.data;
+
+    // Cập nhật lại thông tin user trong local/sessionStorage để Navbar tự đồng bộ
+    const currentUser = this.getCurrentUser();
+    if (currentUser) {
+      const refreshedUser: AuthUser = {
+        ...currentUser,
+        fullName: updated.fullName || currentUser.fullName,
+        phone: updated.phone || currentUser.phone,
+      };
+      const storage = localStorage.getItem("user") ? localStorage : sessionStorage;
+      storage.setItem("user", JSON.stringify(refreshedUser));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth-changed"));
+      }
+    }
+
+    return updated;
+  },
+
+  /**
+   * Đổi mật khẩu
+   */
+  async changePassword(data: ChangePasswordRequest): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>("/auth/change-password", data);
+    return response.data;
   },
 };
 

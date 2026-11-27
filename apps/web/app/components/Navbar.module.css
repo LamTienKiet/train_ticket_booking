@@ -147,6 +147,19 @@
   gap: 12px;
 }
 
+.profileLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.profileLink:hover .userName {
+  color: #1d4ed8;
+}
+
 .userAvatar {
   width: 36px;
   height: 36px;
