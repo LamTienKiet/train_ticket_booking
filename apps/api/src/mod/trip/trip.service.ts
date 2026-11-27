@@ -3,15 +3,17 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../notification/mail.service';
 import { SearchTripDto } from './dto/search-trip.dto';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { BookingSeatStatus, BookingStatus, Prisma } from '@prisma/client';
 import { QueryAdminTripDto } from './dto/query-admin-trip.dto';
 import { buildTripStations } from './trip-schedule';
-import { loadTripSegment, overlapsSegment, segmentPrice, TripSegment } from './segment';
+import { buildTripSegment, loadTripSegment, overlapsSegment, segmentPrice, TripSegment } from './segment';
 
 /** Trùng mã chuyến (unique trip_code) → 409 thay vì 500 */
 async function rethrowDuplicateCode<T>(tripCode: string | undefined, run: () => Promise<T>): Promise<T> {
@@ -27,7 +29,10 @@ async function rethrowDuplicateCode<T>(tripCode: string | undefined, run: () => 
 
 @Injectable()
 export class TripService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly mail?: MailService,
+  ) {}
 
   // ──────────────────────────────────────────────
   // SEARCH TRIPS
@@ -99,13 +104,7 @@ export class TripService {
       orderBy: { departureTime: 'asc' },
     });
 
-    const results = await Promise.all(
-      trips.map((trip) =>
-        this.enrichTripResult(trip, originStationId, destinationStationId),
-      ),
-    );
-
-    return results;
+    return this.enrichTrips(trips, () => [originStationId, destinationStationId]);
   }
 
   private async findValidRouteIds(
@@ -138,23 +137,71 @@ export class TripService {
     return validRouteIds;
   }
 
-  private async enrichTripResult(
-    trip: any,
-    originStationId: string,
-    destinationStationId: string,
+  /**
+   * Gắn giá + số ghế trống cho danh sách chuyến bằng một số query cố định,
+   * không phụ thuộc số chuyến (tránh N+1 query khi tìm chuyến).
+   */
+  private async enrichTrips(
+    trips: any[],
+    stationsOf: (trip: any) => [string, string],
   ) {
-    const seg = await loadTripSegment(this.prisma, trip, originStationId, destinationStationId);
-    const [fareRules, availableSeatsByType] = await Promise.all([
+    if (trips.length === 0) return [];
+    const uniq = (xs: string[]) => [...new Set(xs)];
+    const routeIds = uniq(trips.map((t) => t.routeId));
+
+    const [stops, routeStops, fareRules] = await Promise.all([
+      this.prisma.tripStation.findMany({
+        where: { tripId: { in: trips.map((t) => t.id) } },
+        select: { tripId: true, stationId: true, stopOrder: true },
+        orderBy: { stopOrder: 'asc' },
+      }),
+      this.prisma.routeStation.findMany({
+        where: { routeId: { in: routeIds } },
+        select: { routeId: true, stationId: true, distanceFromOriginKm: true },
+      }),
       this.prisma.fareRule.findMany({
-        where: { routeId: trip.routeId },
+        where: { routeId: { in: routeIds } },
         include: {
           seatType: { select: { id: true, code: true, name: true } },
           passengerFares: true,
         },
       }),
-      this.getAvailableSeatsByType(trip.id, trip.trainId, seg),
     ]);
 
+    const segs = trips.map((trip) => {
+      const [from, to] = stationsOf(trip);
+      return buildTripSegment(
+        stops.filter((s) => s.tripId === trip.id),
+        routeStops.filter((r) => r.routeId === trip.routeId),
+        from,
+        to,
+      );
+    });
+    const available = await this.availableSeatsByTrip(
+      trips.map((t, i) => ({ id: t.id, trainId: t.trainId, seg: segs[i] })),
+    );
+
+    return trips.map((trip, i) =>
+      this.toTripResult(
+        trip,
+        ...stationsOf(trip),
+        segs[i],
+        fareRules.filter((fr) => fr.routeId === trip.routeId),
+        available.get(trip.id)!,
+      ),
+    );
+  }
+
+  private toTripResult(
+    trip: any,
+    originStationId: string,
+    destinationStationId: string,
+    seg: TripSegment,
+    fareRules: Prisma.FareRuleGetPayload<{
+      include: { seatType: { select: { id: true; code: true; name: true } }; passengerFares: true };
+    }>[],
+    availableSeatsByType: Map<string, number>,
+  ) {
     const originTripStation = trip.tripStations.find(
       (ts: any) => ts.stationId === originStationId,
     );
@@ -216,62 +263,64 @@ export class TripService {
     };
   }
 
-  private async getAvailableSeatsByType(
-    tripId: string,
-    trainId: string,
-    seg: TripSegment,
-  ): Promise<Map<string, number>> {
-    const totalSeats = await this.prisma.seat.groupBy({
-      by: ['seatTypeId'],
-      where: { coach: { trainId } },
-      _count: { id: true },
-    });
-
+  /** Số ghế trống theo loại ghế của từng chuyến: tripId → (seatTypeId → số ghế trống) */
+  private async availableSeatsByTrip(
+    trips: { id: string; trainId: string; seg: TripSegment }[],
+  ): Promise<Map<string, Map<string, number>>> {
+    const trainIds = [...new Set(trips.map((t) => t.trainId))];
     const now = new Date();
-    const bookedSeats = await this.prisma.bookingSeat.findMany({
-      where: {
-        booking: {
-          tripId,
-          OR: [
-            { status: 'CONFIRMED' },
-            {
-              status: 'PENDING',
-              expiresAt: { gt: now },
-            },
-          ],
+    const [coaches, seatCounts, bookedSeats] = await Promise.all([
+      this.prisma.coach.findMany({
+        where: { trainId: { in: trainIds } },
+        select: { id: true, trainId: true },
+      }),
+      this.prisma.seat.groupBy({
+        by: ['coachId', 'seatTypeId'],
+        where: { coach: { trainId: { in: trainIds } } },
+        _count: { id: true },
+      }),
+      this.prisma.bookingSeat.findMany({
+        where: {
+          booking: {
+            tripId: { in: trips.map((t) => t.id) },
+            OR: [
+              { status: 'CONFIRMED' },
+              { status: 'PENDING', expiresAt: { gt: now } },
+            ],
+          },
+          status: { in: ['HELD', 'CONFIRMED'] },
         },
-        status: { in: ['HELD', 'CONFIRMED'] },
-      },
-      select: { seatId: true, originStationId: true, destinationStationId: true },
-    });
+        select: {
+          seatId: true,
+          originStationId: true,
+          destinationStationId: true,
+          seat: { select: { seatTypeId: true } },
+          booking: { select: { tripId: true } },
+        },
+      }),
+    ]);
 
-    // Ghế chỉ bận nếu chặng đã bán chồng lên chặng đang xem
-    const bookedSeatIds = [
-      ...new Set(bookedSeats.filter((b) => overlapsSegment(seg, b)).map((b) => b.seatId)),
-    ];
-    const bookedSeatDetails =
-      bookedSeatIds.length > 0
-        ? await this.prisma.seat.findMany({
-          where: { id: { in: bookedSeatIds } },
-          select: { id: true, seatTypeId: true },
-        })
-        : [];
-
-    const bookedPerType = new Map<string, number>();
-    for (const seat of bookedSeatDetails) {
-      bookedPerType.set(
-        seat.seatTypeId,
-        (bookedPerType.get(seat.seatTypeId) ?? 0) + 1,
-      );
+    const trainOfCoach = new Map(coaches.map((c) => [c.id, c.trainId]));
+    const result = new Map<string, Map<string, number>>();
+    for (const trip of trips) {
+      const available = new Map<string, number>();
+      for (const c of seatCounts) {
+        if (trainOfCoach.get(c.coachId) !== trip.trainId) continue;
+        available.set(c.seatTypeId, (available.get(c.seatTypeId) ?? 0) + c._count.id);
+      }
+      // Ghế chỉ bận nếu chặng đã bán chồng lên chặng đang xem; một ghế đếm một lần
+      const busy = new Map<string, string>();
+      for (const b of bookedSeats) {
+        if (b.booking.tripId === trip.id && overlapsSegment(trip.seg, b)) {
+          busy.set(b.seatId, b.seat.seatTypeId);
+        }
+      }
+      for (const seatTypeId of busy.values()) {
+        if (available.has(seatTypeId)) available.set(seatTypeId, available.get(seatTypeId)! - 1);
+      }
+      result.set(trip.id, available);
     }
-
-    const availableMap = new Map<string, number>();
-    for (const total of totalSeats) {
-      const booked = bookedPerType.get(total.seatTypeId) ?? 0;
-      availableMap.set(total.seatTypeId, total._count.id - booked);
-    }
-
-    return availableMap;
+    return result;
   }
 
   // ──────────────────────────────────────────────
@@ -350,7 +399,9 @@ export class TripService {
           passengerFares: true,
         },
       }),
-      this.getAvailableSeatsByType(trip.id, trip.trainId, await loadTripSegment(this.prisma, trip)),
+      loadTripSegment(this.prisma, trip).then(async (seg) =>
+        (await this.availableSeatsByTrip([{ id: trip.id, trainId: trip.trainId, seg }])).get(trip.id)!,
+      ),
     ]);
 
     const durationMs =
@@ -692,19 +743,18 @@ export class TripService {
       take: 50,
     });
 
-    return Promise.all(
-      trips.map((trip) =>
-        this.enrichTripResult(
-          trip,
-          trip.route.originStationId,
-          trip.route.destinationStationId,
-        ),
-      ),
-    );
+    return this.enrichTrips(trips, (trip) => [
+      trip.route.originStationId,
+      trip.route.destinationStationId,
+    ]);
   }
 
   async update(id: string, dto: UpdateTripDto) {
-    return rethrowDuplicateCode(dto.tripCode, () => this.updateTx(id, dto));
+    const before = await this.prisma.trip.findUnique({ where: { id }, select: { status: true } });
+    const updated = await rethrowDuplicateCode(dto.tripCode, () => this.updateTx(id, dto));
+    // Chỉ báo khách lúc chuyến vừa chuyển sang Đã hủy, không gửi lại mỗi lần sửa chuyến đã hủy
+    if (dto.status === 'CANCELLED' && before?.status !== 'CANCELLED') void this.mail?.notifyTripCancelled(id);
+    return updated;
   }
 
   private updateTx(id: string, dto: UpdateTripDto) {
@@ -784,6 +834,7 @@ export class TripService {
 
     if (trip._count.bookings > 0) {
       await this.prisma.trip.update({ where: { id }, data: { status: 'CANCELLED' } });
+      if (trip.status !== 'CANCELLED') void this.mail?.notifyTripCancelled(id);
       return { cancelled: true, message: 'Chuyến đã có đơn đặt vé nên đã chuyển sang Đã hủy.' };
     }
     await this.prisma.trip.delete({ where: { id } });

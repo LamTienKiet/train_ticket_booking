@@ -54,6 +54,16 @@ export async function loadTripSegment(
       select: { stationId: true, distanceFromOriginKm: true },
     }),
   ]);
+  return buildTripSegment(stops, routeStops, from, to);
+}
+
+/** Như loadTripSegment nhưng từ dữ liệu đã đọc sẵn (stops sắp theo stopOrder tăng dần) */
+export function buildTripSegment(
+  stops: { stationId: string; stopOrder: number }[],
+  routeStops: { stationId: string; distanceFromOriginKm: unknown }[],
+  from?: string,
+  to?: string,
+): TripSegment {
   const stopOrders = new Map(stops.map((s) => [s.stationId, s.stopOrder]));
 
   // Chuyến chưa có lịch ga dừng: cả chuyến, mọi ghế đã đặt đều tính là trùng
